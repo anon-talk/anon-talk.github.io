@@ -1,0 +1,455 @@
+<!-- File: chat.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ANONTALK — Chat</title>
+
+  <!-- Fonts (same family as base index.html) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --background-primary:#0A0A0A;
+      --background-secondary:#1A1A1A;
+      --text-primary:#E8E8E8;
+      --text-secondary:#888888;
+      --accent-primary:#00D4FF;
+
+      /* layout helpers */
+      --container-max:1440px;
+      --inline-pad:clamp(16px,5vw,64px);
+      --safe-bottom:env(safe-area-inset-bottom, 0px);
+      --bar-height:64px;
+      --composer-height:88px;
+      --border-default:#333333;
+    }
+
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      background:var(--background-primary);
+      color:var(--text-primary);
+      font-family:'Space Grotesk','JetBrains Mono',monospace;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      overflow:hidden;
+    }
+
+    /* App shell: header / history / composer */
+    .chat-shell{
+      height:100dvh;
+      width:100%;
+      display:grid;
+      grid-template-rows: var(--bar-height) 1fr calc(var(--composer-height) + var(--safe-bottom));
+    }
+
+    .container{
+      max-width:var(--container-max);
+      margin-inline:auto;
+      padding-inline:var(--inline-pad);
+      width:100%;
+    }
+
+    /* Brand mark (reuses base style) */
+    .brand-logo{
+      width:24px;height:24px;
+      background-color:var(--accent-primary);
+      clip-path:polygon(0% 0%,100% 0%,100% 50%,50% 50%,50% 100%,0% 100%);
+      border-radius:50%;
+      flex:0 0 24px;
+    }
+
+    /* Header bar */
+    .app-bar{
+      border-bottom:1px solid var(--border-default);
+      display:flex;
+      align-items:center;
+      background:var(--background-primary);
+    }
+    .app-bar__inner{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:clamp(12px,3vw,32px);
+    }
+    .app-bar__left{
+      display:grid;
+      grid-template-columns:auto 1fr;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+    .app-bar__left-text{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+    }
+    .channel-title{
+      font-weight:600;
+      font-size:20px;
+      line-height:24px;
+      color:#fff;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .channel-subtitle{
+      font-weight:400;
+      font-size:12px;
+      line-height:16px;
+      color:#9CA3AF;
+    }
+    .app-bar__right{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:4px;
+      min-width:0;
+      text-align:right;
+    }
+    .agent-title{
+      font-weight:600;
+      font-size:20px;
+      line-height:24px;
+      color:#fff;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .agent-subtitle{
+      font-weight:400;
+      font-size:12px;
+      line-height:16px;
+      color:#fff;
+      opacity:0.9;
+    }
+
+    /* Chat history */
+    .chat-history{
+      overflow:auto;
+      overscroll-behavior:contain;
+      scroll-behavior:smooth;
+      padding-block:clamp(16px,4vh,24px);
+      background:var(--background-primary);
+    }
+    .history-inner{
+      max-width:var(--container-max);
+      margin-inline:auto;
+      padding-inline:var(--inline-pad);
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .system-pill{
+      align-self:center;
+      background:var(--background-secondary);
+      color:var(--text-secondary);
+      border-radius:64px;
+      padding:8px 12px;
+      font-family:'JetBrains Mono',monospace;
+      font-variant-ligatures:none;
+      font-weight:500;
+      font-size:12px;
+      line-height:16px;
+      margin-block:16px;
+    }
+
+    .msg{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      max-width:min(720px, 90%);
+      padding:16px 24px 16px 32px;
+      background:var(--background-secondary);
+      border-radius:48px 48px 48px 8px;
+      align-self:flex-start;
+      box-shadow:none;
+      border:1px solid transparent;
+    }
+    .msg--out{
+      align-self:flex-end;
+      background:var(--accent-primary);
+      color:var(--background-primary);
+      border-radius:48px 48px 8px 48px;
+    }
+    .msg--god{
+      border-color:var(--accent-primary);
+    }
+
+    .msg__meta{
+      font-family:'JetBrains Mono',monospace;
+      font-variant-ligatures:none;
+      font-weight:500;
+      font-size:12px;
+      line-height:16px;
+      color:var(--text-secondary);
+    }
+    .msg--out .msg__meta{
+      color:var(--border-default);
+    }
+
+    .msg__text{
+      font-family:'JetBrains Mono',monospace;
+      font-variant-ligatures:none;
+      font-weight:400;
+      font-size:14px;
+      line-height:16px;
+      color:#fff;
+    }
+    .msg--out .msg__text{ color:var(--background-primary); }
+
+    /* Composer */
+    .composer{
+      border-top:1px solid var(--border-default);
+      background:var(--background-primary);
+      padding-bottom:var(--safe-bottom);
+      display:flex;
+      align-items:center;
+    }
+    .composer__inner{
+      display:grid;
+      grid-template-columns:1fr auto;
+      align-items:center;
+      gap:12px;
+      width:100%;
+    }
+
+    .composer-field{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      height:48px;
+      background:var(--background-secondary);
+      border-radius:999px;
+      padding:0 8px;
+      min-width:0;
+    }
+    .chip{
+      background:var(--background-primary);
+      color:var(--accent-primary);
+      border-radius:999px;
+      border:none;
+      padding:8px 16px;
+      font-family:'Space Grotesk',sans-serif;
+      font-weight:500;
+      font-size:14px;
+      line-height:16px;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .chip:focus-visible{outline:none; box-shadow:0 0 0 2px var(--accent-primary) inset;}
+    .chip:hover{filter:brightness(1.05)}
+
+    .pill-input{
+      appearance:none;
+      border:none;
+      background:transparent;
+      color:var(--text-primary);
+      font-family:'Space Grotesk',sans-serif;
+      font-weight:500;
+      font-size:14px;
+      line-height:16px;
+      padding:0 8px;
+      height:48px;
+      flex:1 1 auto;
+      min-width:0;
+    }
+    .pill-input::placeholder{ color:var(--text-secondary); }
+    .pill-input:focus{ outline:none; }
+
+    .send-btn{
+      background:var(--accent-primary);
+      color:var(--background-primary);
+      border:none;
+      border-radius:999px;
+      padding:8px 16px;
+      font-family:'Space Grotesk',sans-serif;
+      font-weight:500;
+      font-size:14px;
+      line-height:16px;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .send-btn:hover{ filter:brightness(0.98); }
+    .send-btn:focus-visible{ outline:none; box-shadow:0 0 0 2px var(--accent-primary); }
+
+    /* Mobile adaptations */
+    @media (max-width:768px){
+      /* Header & history adjustments (existing) */
+      .channel-title {
+        font-size: 16px;
+        line-height: 24px;
+      }
+      .channel-subtitle {
+        font-size: 10px;
+        line-height: 16px;
+      }
+      .agent-title {
+        font-size: 16px;
+        line-height: 24px;
+      }
+      .agent-subtitle {
+        font-size: 10px;
+        line-height: 16px;
+        color: var(--text-secondary);
+      }
+
+      .app-bar__inner{
+        gap:12px;
+      }
+
+      .history-inner{ gap:12px; }
+      .msg{ max-width:92%; }
+
+      /* Mobile composer refactor */
+      .composer__inner{
+        display:grid;
+        grid-template-columns:1fr max-content;
+        grid-template-rows:1fr 1fr;
+        column-gap:8px;
+        row-gap:4px;
+        align-items:stretch;
+        width:100%;
+        height:48px;
+        padding:0 12px;
+        background:var(--background-secondary);
+        border-radius:999px;
+      }
+
+      .composer-field{
+        display:contents;
+        background:transparent;
+        padding:0;
+        gap:0;
+        height:auto;
+      }
+
+      .pill-input{
+        grid-column:1 / 2;
+        grid-row:1 / 3;
+        align-self:stretch;
+        height:100%;
+        padding:0;
+        font-size:14px;
+      }
+
+      .composer-field .chip{
+        grid-column:2;
+        grid-row:1;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        height:100%;
+        padding:0 12px;
+        font-size:12px;
+        line-height:16px;
+        border-radius:999px;
+        background:var(--background-primary);
+      }
+
+      .send-btn{
+        grid-column:2;
+        grid-row:2;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        height:100%;
+        padding:0 12px;
+        font-size:12px;
+        line-height:16px;
+      }
+    }
+
+    @media (prefers-reduced-motion:reduce){
+      .chat-history{ scroll-behavior:auto; }
+    }
+
+    .visually-hidden{
+      position:absolute !important;
+      height:1px;width:1px;
+      overflow:hidden;clip:rect(1px,1px,1px,1px);
+      white-space:nowrap;border:0;padding:0;margin:-1px;
+    }
+  </style>
+</head>
+<body>
+  <main class="chat-shell" aria-label="Chat screen">
+
+    <!-- Header Bar -->
+    <header class="app-bar">
+      <div class="container app-bar__inner">
+        <div class="app-bar__left">
+          <div class="brand-logo" aria-hidden="true"></div>
+          <div class="app-bar__left-text">
+            <div class="channel-title">
+                <span class="desktop-only">/anontalk/secure_channel_0x0A</span>
+                <span class="mobile-only">/anontalk/0x0A</span>
+            </div>
+            <div class="channel-subtitle">
+                <span class="desktop-only">STATUS: ONLINE // Agents Active: 12</span>
+                <span class="mobile-only">Agents Active: 12</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="app-bar__right">
+          <div class="agent-title">&lt;/agent: falcon_7&gt;</div>
+          <div class="agent-subtitle">&lt;/godmode: DISABLED&gt;</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Chat History -->
+    <section class="chat-history" role="log" aria-live="polite">
+      <div class="history-inner">
+        <article class="msg" aria-label="Message from operator_7 at 3:20pm">
+            <div class="msg__meta">&lt;/operator_7&gt; // at 3:20pm</div>
+            <div class="msg__text">Ybg qbybevat...</div>
+        </article>
+        <article class="msg msg--out" aria-label="Message from falcon_7 at 3:22pm">
+            <div class="msg__meta">&lt;/falcon_7&gt; // at 3:22pm</div>
+            <div class="msg__text">Ybg qbybevat...</div>
+        </article>
+        <div class="system-pill" aria-hidden="true">&lt;/Today&gt;</div>
+        <article class="msg msg--god" aria-label="Message from fighter_2 at 3:24pm (GOD MODE)">
+            <div class="msg__meta">&lt;/fighter_2&gt; // at 3:24pm // GOD MODE</div>
+            <div class="msg__text">Ybg? Ybg qbybevat...</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Composer -->
+    <footer class="composer">
+      <div class="container composer__inner" aria-label="Composer">
+        <div class="composer-field" role="group" aria-label="Message input">
+          <button type="button" class="chip">
+            <span class="desktop-only">&lt;/cipher: Caesar&gt;</span>
+            <span class="mobile-only">&lt;/cipher&gt;</span>
+          </button>
+          <input class="pill-input" type="text" placeholder="> Enter your message_" aria-label="Enter your message" />
+        </div>
+        <button type="button" class="send-btn">&lt;/send&gt;</button>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    // New CSS for toggling visibility
+    const style = document.createElement('style');
+    style.textContent = `
+        .mobile-only { display: none; }
+        @media (max-width: 768px) {
+            .desktop-only { display: none; }
+            .mobile-only { display: inline; }
+        }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>
