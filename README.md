@@ -38,5 +38,6 @@ All tasks, feature ideas, and bug reports are tracked on our **GitHub Project bo
 
 ---
 
-*This project is a personal endeavor for a private friend group, created by Anirudh Gupta.*
-*The code is written with significant assistance from multiple AI models. The UI designs are made by me in Figma, with guidance from AI models*
+*This project is a personal endeavor for my friend group, created by me, Anirudh Gupta (AnAnonymousPotato or AnonSpud).*
+*The UI was designed in Figma by me, with some guidance from AI. The codebase was written with significant assistance from multiple AI models, all under my direction.*
+*I was basically the creative director and manager, while the AI models were the assistants*
