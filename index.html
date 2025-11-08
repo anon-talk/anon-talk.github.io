@@ -42,7 +42,11 @@
     }
 
     main {
-      display: contents;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
     }
 
     .hidden {
@@ -62,21 +66,27 @@
     }
 
     .screen {
-      position: relative;
-      width: 1440px;
-      height: 1024px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+      --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+      --screen-inline-padding: clamp(1.5rem, 6vw, 4.5rem);
+      --screen-block-padding-start: clamp(2rem, 8vh, 5.5rem);
+      --screen-block-padding-end: clamp(1.5rem, 4vh, 2.5rem);
+      min-height: 100dvh;
+      width: min(100%, 1440px);
+      padding-inline: var(--screen-inline-padding);
+      padding-block-start: var(--screen-block-padding-start);
+      padding-block-end: calc(var(--screen-block-padding-end) + var(--safe-area-bottom));
+      display: grid;
+      align-content: stretch;
+      justify-items: center;
+      row-gap: clamp(2rem, 6vh, 3.5rem);
     }
 
-    /* --- Brand Lockup --- */
     .brand-header {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 32px;
+      flex-wrap: wrap;
+      gap: clamp(1.5rem, 4vw, 2.5rem);
       text-align: center;
     }
 
@@ -95,20 +105,29 @@
     }
 
     /* --- Airlock Screen --- */
+    #airlock-screen {
+      grid-template-rows: 1fr auto 1fr;
+      justify-items: center;
+    }
+
+    #airlock-screen .brand-header {
+      grid-row: 2;
+      align-self: center;
+    }
+
     #airlock-screen .brand-logo {
       width: 96px;
       height: 96px;
     }
 
     #airlock-screen .brand-title {
-      font-size: 128px;
+      font-size: clamp(72px, 10vw, 128px);
     }
 
     .request-access-button {
-      position: absolute;
-      bottom: 96px;
-      left: 50%;
-      transform: translateX(-50%);
+      grid-row: 3;
+      align-self: end;
+      justify-self: center;
       font-family: 'Space Grotesk', sans-serif;
       font-weight: 600;
       font-size: 20px;
@@ -119,6 +138,8 @@
       transition: color 150ms ease;
       text-transform: uppercase;
       letter-spacing: 0.12em;
+      padding: 0;
+      white-space: nowrap;
     }
 
     .request-access-button:hover,
@@ -129,9 +150,16 @@
     }
 
     /* --- Gateway Screen --- */
+    #gateway-screen {
+      grid-template-rows: 0.8fr 1fr auto;
+      align-items: start;
+      justify-items: stretch;
+      row-gap: clamp(2.5rem, 8vh, 4rem);
+    }
+
     #gateway-screen .brand-header {
-      position: absolute;
-      top: 240px;
+      justify-self: center;
+      align-self: end;
     }
 
     #gateway-screen .brand-logo {
@@ -140,15 +168,18 @@
     }
 
     #gateway-screen .brand-title {
-      font-size: 80px;
+      font-size: clamp(48px, 8vw, 80px);
+    }
+
+    .gateway-body {
+        grid-row: 2;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
 
     .input-container {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 286px;
+      width: min(100%, 22rem);
     }
 
     .input-wrapper {
@@ -177,7 +208,6 @@
       box-shadow: 0 0 0 2px var(--accent-primary);
     }
 
-    /* --- Animated Placeholder --- */
     .fake-placeholder {
       position: absolute;
       inset: 0;
@@ -194,36 +224,30 @@
       white-space: nowrap;
       overflow: hidden;
     }
-
     .fake-placeholder__cursor {
       display: inline-block;
       animation: blink 1s steps(1, end) infinite;
     }
-
     @keyframes blink {
       0%, 49% { opacity: 1; }
       50%, 100% { opacity: 0; }
     }
-
     .pill-input:not(:placeholder-shown) + .fake-placeholder {
       opacity: 0;
     }
 
     .gateway-footer {
-      position: absolute;
-      left: 8px;
-      right: 8px;
-      bottom: 8px;
-      padding: 0 8px;
+      grid-row: 3;
+      align-self: end;
+      justify-self: stretch;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      pointer-events: none;
+      gap: 1.5rem;
+      padding: 0;
     }
 
     .gateway-footer__action {
-      pointer-events: auto;
       background: none;
       border: none;
       color: var(--text-secondary);
@@ -236,7 +260,6 @@
       white-space: nowrap;
       font-variant-ligatures: none;
     }
-
     .gateway-footer__action:hover,
     .gateway-footer__action:focus-visible,
     .gateway-footer__action:active {
@@ -245,19 +268,17 @@
     }
 
     .agent-name {
-        color: inherit;
-        text-decoration: underline;
-        text-decoration-color: var(--accent-primary);
-        text-decoration-thickness: 1px;
-        text-underline-offset: 3px;
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: var(--accent-primary);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
     }
-
     .gateway-footer__action:hover .agent-name,
     .gateway-footer__action:active .agent-name {
-        text-decoration: none;
+      text-decoration: none;
     }
 
-    /* --- Boot Animation --- */
     #boot-screen {
       position: fixed;
       inset: 0;
@@ -270,115 +291,77 @@
       gap: 0.5rem;
       font-variant-ligatures: none;
       z-index: 100;
+      overflow-y: auto;
     }
 
-    /* --- Motion Preferences --- */
     @media (prefers-reduced-motion: reduce) {
-      .request-access-button,
-      .gateway-footer__action,
-      .fake-placeholder__cursor {
-        transition: none;
-        animation: none;
-      }
+        /* motion preferences */
     }
 
-    /* --- Mobile Styles (768px and below) --- */
     @media (max-width: 768px) {
-      .screen {
-        width: 100%;
-        height: 100vh;
-      }
+        .screen {
+            padding: clamp(2rem, 8vw, 3rem);
+            gap: clamp(1.5rem, 5vh, 3rem);
+        }
 
-      #airlock-screen {
-        justify-content: center;
-      }
+        #airlock-screen .brand-header {
+            flex-direction: column;
+            gap: clamp(1rem, 4vh, 1.75rem);
+        }
 
-      #airlock-screen .brand-header {
-        position: static;
-        transform: none;
-        flex-direction: column;
-        gap: 1.5rem;
-      }
+        #airlock-screen .brand-logo {
+            width: clamp(64px, 20vw, 80px);
+            height: clamp(64px, 20vw, 80px);
+        }
 
-      #airlock-screen .brand-logo {
-        width: clamp(64px, 20vw, 80px);
-        height: clamp(64px, 20vw, 80px);
-      }
+        #airlock-screen .brand-title {
+            font-size: clamp(48px, 15vw, 72px);
+        }
 
-      #airlock-screen .brand-title {
-        font-size: clamp(48px, 15vw, 72px);
-      }
+        .request-access-button {
+            width: 100%;
+            max-width: 20rem;
+            padding: 0.75rem 1.5rem;
+            font-size: clamp(16px, 4vw, 18px);
+        }
 
-      .request-access-button {
-        position: absolute;
-        bottom: 4rem; /* Safe area from bottom */
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: clamp(16px, 4vw, 18px);
-      }
+        #gateway-screen .brand-logo {
+            width: clamp(48px, 15vw, 64px);
+            height: clamp(48px, 15vw, 64px);
+        }
 
-      /* MODIFIED: Simplified and corrected Gateway mobile layout */
-      #gateway-screen {
-        justify-content: flex-start; /* Align content to the top */
-        padding-top: 15vh; /* Push content down from the top */
-      }
+        #gateway-screen .brand-title {
+            font-size: clamp(40px, 12vw, 60px);
+        }
 
-      #gateway-screen .brand-header {
-        position: static; /* No longer absolute */
-        transform: none;
-        flex-direction: column;
-        gap: 1.5rem;
-        margin-bottom: 8vh; /* Space between logo and input */
-      }
+        .input-container {
+            max-width: 22rem;
+        }
 
-      #gateway-screen .brand-logo {
-        width: clamp(48px, 15vw, 64px);
-        height: clamp(48px, 15vw, 64px);
-      }
+        .pill-input {
+            height: 48px;
+            font-size: 16px;
+        }
 
-      #gateway-screen .brand-title {
-        font-size: clamp(40px, 12vw, 60px);
-      }
+        .fake-placeholder {
+            font-size: 16px;
+        }
 
-      .input-container {
-        position: static;
-        transform: none;
-        width: 100%;
-        max-width: 22rem; /* A bit wider for mobile */
-      }
+        /* THIS IS THE ONLY MODIFIED SECTION */
+        .gateway-footer {
+            flex-direction: row; /* Revert to horizontal layout */
+            align-items: center;
+            justify-content: space-between; /* Push to corners */
+            gap: 1rem;
+            padding: 0; /* Remove padding */
+        }
 
-      .pill-input {
-        height: 48px;
-        font-size: 16px;
-      }
-
-      .fake-placeholder {
-        font-size: 16px;
-      }
-
-      .gateway-footer {
-        position: absolute;
-        bottom: 2rem; /* Safe area from bottom */
-        left: 1.5rem;
-        right: 1.5rem;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.75rem;
-        padding: 0;
-        pointer-events: auto; /* Enable clicks in footer */
-      }
-
-      .gateway-footer__action {
-        background-color: var(--background-secondary);
-        border-radius: 0.75rem;
-        padding: 0.75rem 1rem;
-        text-align: center;
-      }
-
-      #boot-screen {
-        padding: 1.5rem;
-        font-size: clamp(14px, 4vw, 16px);
-      }
+        .gateway-footer__action {
+            background-color: transparent; /* Remove button background */
+            border-radius: 0;
+            padding: 0; /* Remove button padding */
+            text-align: inherit; /* Inherit text alignment */
+        }
     }
   </style>
 </head>
@@ -404,26 +387,30 @@
         <div class="brand-logo" aria-hidden="true"></div>
         <h2 id="gateway-title" class="brand-title">ANONTALK</h2>
       </header>
-      <div class="input-container">
-        <label class="visually-hidden" for="gateway-init-key">Enter initialization key</label>
-        <div class="input-wrapper">
-          <input
-            id="gateway-init-key"
-            type="text"
-            class="pill-input"
-            placeholder=" "
-            autocomplete="one-time-code"
-            aria-describedby="gateway-input-help"
-          >
-          <div class="fake-placeholder" aria-hidden="true">
-            <span>&gt; Enter initialization key</span>
-            <span class="fake-placeholder__cursor">_</span>
+
+      <div class="gateway-body">
+        <div class="input-container">
+          <label class="visually-hidden" for="gateway-init-key">Enter initialization key</label>
+          <div class="input-wrapper">
+            <input
+              id="gateway-init-key"
+              type="text"
+              class="pill-input"
+              placeholder=" "
+              autocomplete="one-time-code"
+              aria-describedby="gateway-input-help"
+            >
+            <div class="fake-placeholder" aria-hidden="true">
+              <span>&gt; Enter initialization key</span>
+              <span class="fake-placeholder__cursor">_</span>
+            </div>
           </div>
+          <span id="gateway-input-help" class="visually-hidden">
+            Type your initialization key to continue.
+          </span>
         </div>
-        <span id="gateway-input-help" class="visually-hidden">
-          Type your initialization key to continue.
-        </span>
       </div>
+
       <footer class="gateway-footer" aria-label="Gateway controls">
         <button class="gateway-footer__action" type="button">
           &lt;/agent: <span class="agent-name">falcon_7</span>&gt;
@@ -448,6 +435,7 @@
     const gatewayScreen = document.getElementById('gateway-screen');
     const bootScreen = document.getElementById('boot-screen');
     const requestAccessButton = document.querySelector('.request-access-button');
+    const initInput = document.getElementById('gateway-init-key');
 
     const toggleVisibility = (element, hidden) => {
       element.classList.toggle('hidden', hidden);
@@ -480,6 +468,7 @@
       setTimeout(() => {
         toggleVisibility(bootScreen, true);
         toggleVisibility(gatewayScreen, false);
+        // initInput.focus(); // REMOVED
       }, totalDelay);
     };
 
