@@ -112,9 +112,18 @@
 
     // 3. FirebaseUI Widget Configuration
     const uiConfig = {
-      // The URL to redirect to after a successful sign-in.
-      // We redirect back to the main page.
-      signInSuccessUrl: 'index.html',
+      // Popup flow is the default behavior when signInFlow is not specified
+      signInFlow: 'popup',
+      
+      callbacks: {
+        signInSuccessWithAuthResult: function(authResult, redirectUrl) {
+          // User successfully signed in with popup.
+          // Redirect to the main page.
+          window.location.href = 'index.html';
+          // Return false to prevent FirebaseUI from doing its own redirect.
+          return false;
+        }
+      },
 
       // We will display Google and Email as sign-in options.
       signInOptions: [
