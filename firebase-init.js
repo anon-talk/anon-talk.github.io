@@ -6,7 +6,7 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-aut
 import { getDatabase } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // Your web app's Firebase configuration
-export const firebaseConfig = {
+const firebaseConfig = {
     apiKey: "AIzaSyD-vVX8crq-jPCCug1T2KLWvoSlI0odtzs",
     authDomain: "anontalk-f43b3.firebaseapp.com",
     projectId: "anontalk-f43b3",
@@ -15,8 +15,7 @@ export const firebaseConfig = {
     appId: "1:715920696505:web:9a2bec0afebdbfe9b22768"
 };
 
-// Initialize Firebase (modular)
-// This keeps the modern modular SDK for the rest of your application.
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
 // Export the services for other files to use
