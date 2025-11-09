@@ -69,7 +69,6 @@
     }
 
     /* --- FirebaseUI Customization --- */
-    /* You can add more rules here to override FirebaseUI's default styles */
     .firebaseui-idp-button {
         background-color: var(--background-secondary) !important;
         border-radius: 999px !important;
@@ -91,13 +90,16 @@
     <div id="firebaseui-auth-container"></div>
   </div>
 
-  <!-- Import Firebase and FirebaseUI Scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <!-- Import FirebaseUI and the latest modular Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
 
-  <script>
-    // 1. Paste Your Firebase Configuration Object Here
+  <!-- Use type="module" for modern Firebase SDK -->
+  <script type="module">
+    // --- SDK Imports (Modern Modular Syntax) ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    // 1. Your Firebase Configuration Object
     const firebaseConfig = {
       apiKey: "AIzaSyD-vVX8crq-jPCCug1T2KLWvoSlI0odtzs",
       authDomain: "anontalk-f43b3.firebaseapp.com",
@@ -107,25 +109,27 @@
       appId: "1:715920696505:web:9a2bec0afebdbfe9b22768"
     };
 
-    // 2. Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
+    // 2. Initialize Firebase and Authentication
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
     // 3. FirebaseUI Widget Configuration
     const uiConfig = {
       // The URL to redirect to after a successful sign-in.
-      // We redirect back to the main page.
       signInSuccessUrl: 'index.html',
 
       // We will display Google and Email as sign-in options.
       signInOptions: [
-        firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-        firebase.auth.EmailAuthProvider.PROVIDER_ID
+        GoogleAuthProvider.PROVIDER_ID,
+        EmailAuthProvider.PROVIDER_ID
       ],
+      // Use 'redirect' sign-in flow.
+      signInFlow: 'redirect',
     };
 
     // 4. Initialize the FirebaseUI Widget
-    // This finds the 'firebaseui-auth-container' div and draws the login form inside it.
-    const ui = new firebaseui.auth.AuthUI(firebase.auth());
+    // Pass the modern 'auth' instance directly to the AuthUI constructor.
+    const ui = new firebaseui.auth.AuthUI(auth);
     ui.start('#firebaseui-auth-container', uiConfig);
   </script>
 </body>
