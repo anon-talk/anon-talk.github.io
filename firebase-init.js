@@ -9,6 +9,7 @@ import { getDatabase } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 const firebaseConfig = {
     apiKey: "AIzaSyD-vVX8crq-jPCCug1T2KLWvoSlI0odtzs",
     authDomain: "anontalk-f43b3.firebaseapp.com",
+    databaseURL: "https://anontalk-f43b3-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "anontalk-f43b3",
     storageBucket: "anontalk-f43b3.firebasestorage.app",
     messagingSenderId: "715920696505",
