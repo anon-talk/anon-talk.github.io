@@ -96,37 +96,22 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
 
-  <script>
-    // 1. Paste Your Firebase Configuration Object Here
-    const firebaseConfig = {
-      apiKey: "AIzaSyD-vVX8crq-jPCCug1T2KLWvoSlI0odtzs",
-      authDomain: "anontalk-f43b3.firebaseapp.com",
-      projectId: "anontalk-f43b3",
-      storageBucket: "anontalk-f43b3.firebasestorage.app",
-      messagingSenderId: "715920696505",
-      appId: "1:715920696505:web:9a2bec0afebdbfe9b22768"
-    };
+  <script type="module">
+    // Import the auth service from our central file
+    import { auth } from './firebase-init.js';
 
-    // 2. Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
+    // Initialize the FirebaseUI Widget
+    const ui = new firebaseui.auth.AuthUI(auth);
 
-    // 3. FirebaseUI Widget Configuration
-    const uiConfig = {
+    ui.start('#firebaseui-auth-container', {
       // The URL to redirect to after a successful sign-in.
-      // We redirect back to the main page.
       signInSuccessUrl: 'index.html',
-
-      // We will display Google and Email as sign-in options.
       signInOptions: [
+        // List of OAuth providers supported.
         firebase.auth.GoogleAuthProvider.PROVIDER_ID,
         firebase.auth.EmailAuthProvider.PROVIDER_ID
       ],
-    };
-
-    // 4. Initialize the FirebaseUI Widget
-    // This finds the 'firebaseui-auth-container' div and draws the login form inside it.
-    const ui = new firebaseui.auth.AuthUI(firebase.auth());
-    ui.start('#firebaseui-auth-container', uiConfig);
+    });
   </script>
 </body>
 </html>
