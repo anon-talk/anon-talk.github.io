@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ANONTALK — Chat</title>
 
-  <!-- Fonts (same family as base index.html) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
@@ -18,8 +17,6 @@
       --text-primary:#E8E8E8;
       --text-secondary:#888888;
       --accent-primary:#00D4FF;
-
-      /* layout helpers */
       --container-max:1440px;
       --inline-pad:clamp(16px,5vw,64px);
       --safe-bottom:env(safe-area-inset-bottom, 0px);
@@ -39,7 +36,6 @@
       overflow:hidden;
     }
 
-    /* App shell: header / history / composer */
     .chat-shell{
       height:100dvh;
       width:100%;
@@ -54,7 +50,6 @@
       width:100%;
     }
 
-    /* Brand mark (reuses base style) */
     .brand-logo{
       width:24px;height:24px;
       background-color:var(--accent-primary);
@@ -63,7 +58,6 @@
       flex:0 0 24px;
     }
 
-    /* Header bar */
     .app-bar{
       border-bottom:1px solid var(--border-default);
       display:flex;
@@ -129,7 +123,6 @@
       opacity:0.9;
     }
 
-    /* Chat history */
     .chat-history{
       overflow:auto;
       overscroll-behavior:contain;
@@ -204,7 +197,6 @@
     }
     .msg--out .msg__text{ color:var(--background-primary); }
 
-    /* Composer */
     .composer{
       border-top:1px solid var(--border-default);
       background:var(--background-primary);
@@ -278,91 +270,66 @@
     }
     .send-btn:hover{ filter:brightness(0.98); }
     .send-btn:focus-visible{ outline:none; box-shadow:0 0 0 2px var(--accent-primary); }
+    
+    .mobile-only { display: none; }
 
-    /* Mobile adaptations */
+    /* Accent highlight utility */
+    .highlight-accent { color: var(--accent-primary); }
+
     @media (max-width:768px){
-      /* Header & history adjustments (existing) */
-      .channel-title {
-        font-size: 16px;
-        line-height: 24px;
-      }
-      .channel-subtitle {
-        font-size: 10px;
-        line-height: 16px;
-      }
-      .agent-title {
-        font-size: 16px;
-        line-height: 24px;
-      }
-      .agent-subtitle {
-        font-size: 10px;
-        line-height: 16px;
-        color: var(--text-secondary);
-      }
+      .desktop-only { display: none; }
+      .mobile-only { display: block; }
+      
+      .channel-title{ font-size:16px; line-height:24px; }
+      .channel-subtitle{ font-size:10px; line-height:16px; }
+      .agent-title{ font-size:16px; line-height:24px; }
+      .agent-subtitle{ font-size:10px; line-height:16px; color:var(--text-secondary); }
 
-      .app-bar__inner{
-        gap:12px;
-      }
+      .app-bar__inner{ gap:12px; }
+      .app-bar__left{ grid-template-columns:auto 1fr; }
 
       .history-inner{ gap:12px; }
       .msg{ max-width:92%; }
 
-      /* Mobile composer refactor */
-      .composer__inner{
-        display:grid;
-        grid-template-columns:1fr max-content;
-        grid-template-rows:1fr 1fr;
-        column-gap:8px;
-        row-gap:4px;
-        align-items:stretch;
-        width:100%;
-        height:48px;
-        padding:0 12px;
-        background:var(--background-secondary);
-        border-radius:999px;
+      /* THIS IS THE ONLY MODIFIED SECTION */
+      .composer__inner {
+        display: flex; /* Change to flexbox */
+        gap: 8px;
+        height: 48px;
       }
-
-      .composer-field{
-        display:contents;
-        background:transparent;
-        padding:0;
-        gap:0;
-        height:auto;
+      .composer-field {
+        flex-grow: 1; /* Allow input field to take up available space */
+        padding-right: 0;
       }
-
-      .pill-input{
-        grid-column:1 / 2;
-        grid-row:1 / 3;
-        align-self:stretch;
-        height:100%;
-        padding:0;
-        font-size:14px;
+      .composer-field .chip {
+        display: none; /* Hide the cipher chip inside the input on mobile */
       }
-
-      .composer-field .chip{
-        grid-column:2;
-        grid-row:1;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        height:100%;
-        padding:0 12px;
-        font-size:12px;
-        line-height:16px;
-        border-radius:999px;
-        background:var(--background-primary);
+      .pill-input {
+        padding-left: 16px;
       }
-
-      .send-btn{
-        grid-column:2;
-        grid-row:2;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        height:100%;
-        padding:0 12px;
-        font-size:12px;
-        line-height:16px;
+      .composer-buttons {
+        display: flex;
+        flex-direction: column; /* This is the key fix */
+        justify-content: center;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .composer-buttons .chip,
+      .composer-buttons .send-btn {
+        height: 22px;
+        width: auto;
+        padding: 4px 12px;
+        font-size: 12px;
+        line-height: 14px;
+        background: var(--background-secondary);
+        color: var(--text-secondary);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .composer-buttons .send-btn {
+        background: var(--accent-primary);
+        color: var(--background-primary);
       }
     }
 
@@ -381,75 +348,86 @@
 <body>
   <main class="chat-shell" aria-label="Chat screen">
 
-    <!-- Header Bar -->
     <header class="app-bar">
       <div class="container app-bar__inner">
         <div class="app-bar__left">
           <div class="brand-logo" aria-hidden="true"></div>
           <div class="app-bar__left-text">
             <div class="channel-title">
-                <span class="desktop-only">/anontalk/secure_channel_0x0A</span>
-                <span class="mobile-only">/anontalk/0x0A</span>
+                <span class="desktop-only">/<span class="highlight-accent">anontalk</span>/secure_channel_0x0A</span>
+                <span class="mobile-only">/<span class="highlight-accent">anontalk</span>/0x0A</span>
             </div>
             <div class="channel-subtitle">
-                <span class="desktop-only">STATUS: ONLINE // Agents Active: 12</span>
-                <span class="mobile-only">Agents Active: 12</span>
+                <span class="desktop-only">STATUS: ONLINE // Agents Active: <span class="highlight-accent">12</span></span>
+                <span class="mobile-only">Agents Active: <span class="highlight-accent">12</span></span>
             </div>
           </div>
         </div>
-
         <div class="app-bar__right">
-          <div class="agent-title">&lt;/agent: falcon_7&gt;</div>
+          <div class="agent-title">&lt;/agent: <span class="highlight-accent">falcon_7</span>&gt;</div>
           <div class="agent-subtitle">&lt;/godmode: DISABLED&gt;</div>
         </div>
       </div>
     </header>
 
-    <!-- Chat History -->
     <section class="chat-history" role="log" aria-live="polite">
       <div class="history-inner">
         <article class="msg" aria-label="Message from operator_7 at 3:20pm">
-            <div class="msg__meta">&lt;/operator_7&gt; // at 3:20pm</div>
-            <div class="msg__text">Ybg qbybevat...</div>
+          <div class="msg__meta">&lt;/<span class="highlight-accent">operator_7</span>&gt; // at 3:20pm</div>
+          <div class="msg__text">Ybg qbybevat...</div>
         </article>
+
+        <!-- Added messages for scroll variety -->
+        <article class="msg msg--out" aria-label="Message from falcon_7 at 3:21pm">
+          <div class="msg__meta">&lt;/falcon_7&gt; // at 3:21pm</div>
+          <div class="msg__text">Ybg qbybevat, rknpgvat vq frrzf gb or gur cbvag.</div>
+        </article>
+
+        <article class="msg" aria-label="Message from ninja_9 at 3:22pm">
+          <div class="msg__meta">&lt;/<span class="highlight-accent">ninja_9</span>&gt; // at 3:22pm</div>
+          <div class="msg__text">Pbatenghybgvba, lbh unir n pneq urer. Guvf vf n ybat zrffntr. Guvf vf na bgure grfg sbe fpebyyvat. Ubcrshyyl, vg jbexf jryy.</div>
+        </article>
+
         <article class="msg msg--out" aria-label="Message from falcon_7 at 3:22pm">
-            <div class="msg__meta">&lt;/falcon_7&gt; // at 3:22pm</div>
-            <div class="msg__text">Ybg qbybevat...</div>
+          <div class="msg__meta">&lt;/falcon_7&gt; // at 3:22pm</div>
+          <div class="msg__text">Guvf vf na bgure grfg sbe fpebyyvat. Ubcrshyyl, vg jbexf jryy.</div>
         </article>
-        <div class="system-pill" aria-hidden="true">&lt;/Today&gt;</div>
+
         <article class="msg msg--god" aria-label="Message from fighter_2 at 3:24pm (GOD MODE)">
-            <div class="msg__meta">&lt;/fighter_2&gt; // at 3:24pm // GOD MODE</div>
-            <div class="msg__text">Ybg? Ybg qbybevat...</div>
+          <div class="msg__meta">&lt;/<span class="highlight-accent">fighter_2</span>&gt; // at 3:24pm // GOD MODE</div>
+          <div class="msg__text">Ybg qbybevat, rknpgvat vq frrzf gb or gur cbvag.</div>
+        </article>
+
+        <article class="msg" aria-label="Message from scout_3 at 3:26pm">
+          <div class="msg__meta">&lt;/<span class="highlight-accent">scout_3</span>&gt; // at 3:26pm</div>
+          <div class="msg__text">Pbatenghybgvba, lbh unir n pneq urer. Guvf vf n ybat zrffntr.</div>
+        </article>
+
+        <article class="msg msg--out" aria-label="Message from falcon_7 at 3:27pm">
+          <div class="msg__meta">&lt;/falcon_7&gt; // at 3:27pm</div>
+          <div class="msg__text">Ybg qbybevat, rknpgvat vq frrzf gb or gur cbvag. Guvf vf na bgure grfg sbe fpebyyvat.</div>
+        </article>
+
+        <article class="msg msg--god" aria-label="Message from sentinel_4 at 3:28pm (GOD MODE)">
+          <div class="msg__meta">&lt;/<span class="highlight-accent">sentinel_4</span>&gt; // at 3:28pm // GOD MODE</div>
+          <div class="msg__text">Guvf vf na bgure grfg sbe fpebyyvat. Ubcrshyyl, vg jbexf jryy.</div>
         </article>
       </div>
     </section>
 
-    <!-- Composer -->
     <footer class="composer">
       <div class="container composer__inner" aria-label="Composer">
         <div class="composer-field" role="group" aria-label="Message input">
-          <button type="button" class="chip">
-            <span class="desktop-only">&lt;/cipher: Caesar&gt;</span>
-            <span class="mobile-only">&lt;/cipher&gt;</span>
-          </button>
+          <button type="button" class="chip desktop-only">&lt;/cipher: Caesar&gt;</button>
           <input class="pill-input" type="text" placeholder="> Enter your message_" aria-label="Enter your message" />
         </div>
-        <button type="button" class="send-btn">&lt;/send&gt;</button>
+        <div class="composer-buttons mobile-only">
+            <button type="button" class="chip">&lt;/cipher&gt;</button>
+            <button type="button" class="send-btn">&lt;/send&gt;</button>
+        </div>
+        <button type="button" class="send-btn desktop-only">&lt;/send&gt;</button>
       </div>
     </footer>
   </main>
-
-  <script>
-    // New CSS for toggling visibility
-    const style = document.createElement('style');
-    style.textContent = `
-        .mobile-only { display: none; }
-        @media (max-width: 768px) {
-            .desktop-only { display: none; }
-            .mobile-only { display: inline; }
-        }
-    `;
-    document.head.appendChild(style);
-  </script>
 </body>
 </html>
