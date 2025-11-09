@@ -3,28 +3,15 @@
 // =================================================================
 
 // --- Firebase SDK Imports (Modern v9+ modular syntax) ---
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+// Import the initialized services from our central file
+import { auth, db } from './firebase-init.js';
+
+// Import the specific functions we need for this page
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+// Note: 'ref' and 'set' are not used on this page, so they can be removed for efficiency.
 
 
-// 1. Paste Your Firebase Configuration Object Here
-// This is the same config object you used in login.html
-const firebaseConfig = {
-    apiKey: "AIzaSyD-vVX8crq-jPCCug1T2KLWvoSlI0odtzs",
-    authDomain: "anontalk-f43b3.firebaseapp.com",
-    projectId: "anontalk-f43b3",
-    storageBucket: "anontalk-f43b3.firebasestorage.app",
-    messagingSenderId: "715920696505",
-    appId: "1:715920696505:web:9a2bec0afebdbfe9b22768"
-};
-
-// 2. Initialize Firebase and Services
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
-
-// 3. Define the correct Initialization Key
+// --- Configuration ---
 const CORRECT_INIT_KEY = "AUTHORIZE_OPERATOR_ANIRUDH"; // You can change this secret key!
 
 // --- DOM Element References ---
@@ -67,7 +54,6 @@ onAuthStateChanged(auth, user => {
  * This function redirects the user to the login page.
  */
 requestAccessButton.addEventListener('click', () => {
-    // NOTE: The boot-up animation is temporarily disabled here.
     // We redirect directly to the login page.
     window.location.href = 'login.html';
 });
@@ -89,10 +75,8 @@ function handleInitKeySubmit(event) {
             // FAILURE: The key is incorrect.
             console.error("Incorrect Initialization Key entered.");
             
-            // Remove the old alert
-            // alert("ERROR: Invalid Initialization Key."); 
-
             // Add the 'error' class to trigger the animation and red glow
+            // Make sure the 'error' class and its @keyframes are defined in your index.html CSS
             initKeyInput.classList.add('error');
             initKeyInput.value = ''; // Clear the input
 
