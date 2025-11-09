@@ -208,8 +208,10 @@
       box-shadow: 0 0 0 2px var(--accent-primary);
     }
 
+    /* Add this with your other input styles */
     .pill-input.error {
       animation: shake 0.5s;
+      /* Adds a red glow to indicate an error */
       box-shadow: 0 0 0 2px #FF0000; 
     }
 
@@ -238,6 +240,7 @@
       50%, 100% { opacity: 0; }
     }
 
+    /* Add this with your other animation keyframes */
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-6px); }
@@ -305,33 +308,75 @@
       z-index: 100;
       overflow-y: auto;
     }
-    
-    /* --- NEW CSS for Profile Setup Screen --- */
-    #profile-setup-screen {
-      grid-template-rows: 0.8fr 1fr auto;
-      align-items: start;
-      justify-items: stretch;
-      row-gap: clamp(2.5rem, 8vh, 4rem);
-    }
-    #profile-setup-screen .brand-header {
-      justify-self: center;
-      align-self: end;
-    }
-    #profile-setup-screen .brand-logo {
-      width: 64px;
-      height: 64px;
-    }
-    #profile-setup-screen .brand-title {
-      font-size: clamp(28px, 5vw, 36px);
-      letter-spacing: 0.08em;
-    }
 
     @media (prefers-reduced-motion: reduce) {
         /* motion preferences */
     }
 
     @media (max-width: 768px) {
-        /* (all existing mobile styles are preserved) */
+        .screen {
+            padding: clamp(2rem, 8vw, 3rem);
+            gap: clamp(1.5rem, 5vh, 3rem);
+        }
+
+        #airlock-screen .brand-header {
+            flex-direction: column;
+            gap: clamp(1rem, 4vh, 1.75rem);
+        }
+
+        #airlock-screen .brand-logo {
+            width: clamp(64px, 20vw, 80px);
+            height: clamp(64px, 20vw, 80px);
+        }
+
+        #airlock-screen .brand-title {
+            font-size: clamp(48px, 15vw, 72px);
+        }
+
+        .request-access-button {
+            width: 100%;
+            max-width: 20rem;
+            padding: 0.75rem 1.5rem;
+            font-size: clamp(16px, 4vw, 18px);
+        }
+
+        #gateway-screen .brand-logo {
+            width: clamp(48px, 15vw, 64px);
+            height: clamp(48px, 15vw, 64px);
+        }
+
+        #gateway-screen .brand-title {
+            font-size: clamp(40px, 12vw, 60px);
+        }
+
+        .input-container {
+            max-width: 22rem;
+        }
+
+        .pill-input {
+            height: 48px;
+            font-size: 16px;
+        }
+
+        .fake-placeholder {
+            font-size: 16px;
+        }
+
+        /* THIS IS THE ONLY MODIFIED SECTION */
+        .gateway-footer {
+            flex-direction: row; /* Revert to horizontal layout */
+            align-items: center;
+            justify-content: space-between; /* Push to corners */
+            gap: 1rem;
+            padding: 0; /* Remove padding */
+        }
+
+        .gateway-footer__action {
+            background-color: transparent; /* Remove button background */
+            border-radius: 0;
+            padding: 0; /* Remove button padding */
+            text-align: inherit; /* Inherit text alignment */
+        }
     }
   </style>
 </head>
@@ -390,43 +435,6 @@
         </button>
       </footer>
     </section>
-
-    <!-- NEW HTML: Profile Setup Screen added -->
-    <section id="profile-setup-screen" class="screen hidden" aria-labelledby="profile-setup-title" aria-hidden="true">
-      <header class="brand-header">
-        <div class="brand-logo" aria-hidden="true"></div>
-        <h2 id="profile-setup-title" class="brand-title">[AGENT PROFILE REGISTRATION]</h2>
-      </header>
-
-      <div class="gateway-body">
-        <div class="input-container">
-          <label class="visually-hidden" for="real-name-input">Enter your real name</label>
-          <div class="input-wrapper">
-            <input
-              id="real-name-input"
-              type="text"
-              class="pill-input"
-              placeholder=" "
-              autocomplete="name"
-              aria-describedby="profile-input-help"
-            >
-            <div class="fake-placeholder" aria-hidden="true">
-              <span>&gt; Enter your real name</span>
-              <span class="fake-placeholder__cursor">_</span>
-            </div>
-          </div>
-          <span id="profile-input-help" class="visually-hidden">
-            Your real name will be private; only you can see it.
-          </span>
-        </div>
-      </div>
-
-      <footer class="gateway-footer" aria-label="Profile setup controls">
-        <button id="register-agent-btn" class="gateway-footer__action" type="button">
-          &lt;/REGISTER_AGENT&gt;
-        </button>
-      </footer>
-    </section>
   </main>
 
   <section
@@ -474,15 +482,15 @@
       const totalDelay = prefersReducedMotion ? 500 : 3000;
       setTimeout(() => {
         toggleVisibility(bootScreen, true);
-        // This will be handled by the app.js logic now
-        // toggleVisibility(gatewayScreen, false); 
+        toggleVisibility(gatewayScreen, false);
+        // initInput.focus(); // REMOVED
       }, totalDelay);
     };
 
     requestAccessButton.addEventListener('click', () => {
-      // This will now be handled by app.js's auth check, 
-      // but we keep the boot animation trigger for the redirect
-      window.location.href = 'login.html';
+      toggleVisibility(airlockScreen, true);
+      toggleVisibility(bootScreen, false);
+      runBootAnimation();
     });
 
     requestAccessButton.addEventListener('keydown', event => {
