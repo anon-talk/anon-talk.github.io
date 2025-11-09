@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ANONTALK - Authentication</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
   <!-- FirebaseUI CSS -->
@@ -21,7 +21,11 @@
       --accent-primary: #00D4FF;
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       background-color: var(--background-primary);
@@ -44,171 +48,85 @@
       padding: 2rem;
       border: 1px solid var(--background-secondary);
       border-radius: 8px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
     }
 
-    .auth-header { text-align: center; margin-bottom: 2rem; font-family: 'JetBrains Mono', monospace; }
+    .auth-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
 
-    .auth-title { font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
-    .auth-subtitle { font-size: 14px; color: var(--text-secondary); }
+    .auth-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
 
-    /* FirebaseUI button tweaks */
-    .firebaseui-idp-button { background-color: var(--background-secondary) !important; border-radius: 999px !important; }
-    .firebaseui-idp-text { color: var(--text-primary) !important; }
+    .auth-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* --- FirebaseUI Customization --- */
+    /* You can add more rules here to override FirebaseUI's default styles */
+    .firebaseui-idp-button {
+        background-color: var(--background-secondary) !important;
+        border-radius: 999px !important;
+    }
+    .firebaseui-idp-text {
+        color: var(--text-primary) !important;
+    }
   </style>
 </head>
 <body>
+
   <div class="auth-container">
     <div class="auth-header">
       <h1 class="auth-title">ANONTALK Network</h1>
       <p class="auth-subtitle">Authentication Required</p>
     </div>
 
-    <!-- FirebaseUI mount point -->
+    <!-- The FirebaseUI widget will be rendered inside this div. -->
     <div id="firebaseui-auth-container"></div>
   </div>
 
-  <!-- FirebaseUI script (global) - required for both modular & compat usage -->
+  <!-- Import Firebase and FirebaseUI Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
 
-  <!-- App logic (module) -->
-  <script type="module">
-    // Short helper to dynamically load scripts (used only by fallback)
-    function loadScript(src) {
-      return new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = src;
-        s.async = true;
-        s.onload = () => resolve();
-        s.onerror = (e) => reject(new Error('Failed to load ' + src));
-        document.head.appendChild(s);
-      });
-    }
+  <script>
+    // 1. Paste Your Firebase Configuration Object Here
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-vVX8crq-jPCCug1T2KLWvoSlI0odtzs",
+      authDomain: "anontalk-f43b3.firebaseapp.com",
+      projectId: "anontalk-f43b3",
+      storageBucket: "anontalk-f43b3.firebasestorage.app",
+      messagingSenderId: "715920696505",
+      appId: "1:715920696505:web:9a2bec0afebdbfe9b22768"
+    };
 
-    // Attempt modular initialization first (preferred)
-    try {
-      // Import the modular auth instance and the firebaseConfig exported from your central file
-      // Note: dynamic import inside try/catch to allow fallback if module fails
-      const mod = await import('./firebase-init.js');
-      const { auth, firebaseConfig } = mod;
+    // 2. Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
 
-      // Import provider classes (modular)
-      const { GoogleAuthProvider, EmailAuthProvider } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    // 3. FirebaseUI Widget Configuration
+    const uiConfig = {
+      // The URL to redirect to after a successful sign-in.
+      // We redirect back to the main page.
+      signInSuccessUrl: 'index.html',
 
-      // Basic sanity checks
-      if (!window.firebaseui || !window.firebaseui.auth) {
-        console.warn('firebaseui global is not available yet; it may be blocked or failed to load.');
-        throw new Error('firebaseui missing');
-      }
+      // We will display Google and Email as sign-in options.
+      signInOptions: [
+        firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+        firebase.auth.EmailAuthProvider.PROVIDER_ID
+      ],
+    };
 
-      console.log('[login] Attempting modular firebaseui initialization (preferred).');
-
-      // Create an AuthUI instance using the modular auth instance
-      // firebaseui (global) supports receiving a modular auth instance in newer versions.
-      // We wrap in try/catch so we can fallback if this way fails.
-      try {
-        // If a previous UI exists, reset it
-        if (window._firebaseUiInstance) {
-          try { window._firebaseUiInstance.reset(); } catch(e) {}
-          window._firebaseUiInstance = null;
-        }
-
-        const ui = new window.firebaseui.auth.AuthUI(auth);
-        window._firebaseUiInstance = ui;
-
-        ui.start('#firebaseui-auth-container', {
-          signInSuccessUrl: 'index.html',
-          signInOptions: [
-            GoogleAuthProvider.PROVIDER_ID,
-            EmailAuthProvider.PROVIDER_ID
-          ],
-          // You can add callbacks here if needed:
-          // callbacks: { signInSuccessWithAuthResult: (result, redirectUrl) => true }
-        });
-
-        console.log('[login] firebaseui started (modular) — look for the buttons.');
-        // done — modular init worked
-      } catch (modErr) {
-        console.warn('[login] modular AuthUI init failed, falling back to compat approach:', modErr);
-        throw modErr; // jump to outer catch to run fallback
-      }
-
-    } catch (err) {
-      // Fallback path: load compat SDKs and initialize a namespaced firebase (window.firebase),
-      // then instantiate firebaseui using the compat auth instance.
-      console.warn('[login] Entering compat fallback', err);
-
-      try {
-        // load compat app + auth scripts (these create window.firebase)
-        // We load compat scripts from the same version family to avoid mismatch
-        await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-        await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js');
-
-        // Ensure firebaseui global is present — we added it earlier, but double-check
-        if (!window.firebaseui || !window.firebaseui.auth) {
-          // try loading firebaseui again
-          console.log('[login] firebaseui missing; attempting to load firebaseui again.');
-          await loadScript('https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js');
-        }
-
-        // Obtain firebaseConfig (try to import it from firebase-init; if that fails, use inline config)
-        let firebaseConfig = null;
-        try {
-          const mod2 = await import('./firebase-init.js');
-          firebaseConfig = mod2.firebaseConfig || null;
-        } catch (eImport) {
-          console.warn('[login] Could not import firebaseConfig from firebase-init.js; using an inline fallback if available.', eImport);
-        }
-
-        if (!firebaseConfig) {
-          // Fallback to hard-coded config (same as your firebase-init.js); keep in sync
-          firebaseConfig = {
-            apiKey: "AIzaSyD-vVX8crq-jPCCug1T2KLWvoSlI0odtzs",
-            authDomain: "anontalk-f43b3.firebaseapp.com",
-            projectId: "anontalk-f43b3",
-            storageBucket: "anontalk-f43b3.firebasestorage.app",
-            messagingSenderId: "715920696505",
-            appId: "1:715920696505:web:9a2bec0afebdbfe9b22768"
-          };
-        }
-
-        // Initialize compat firebase app (namespaced)
-        if (!window.firebase || !window.firebase.apps || window.firebase.apps.length === 0) {
-          window.firebase.initializeApp(firebaseConfig);
-          console.log('[login] window.firebase initialized (compat).');
-        } else {
-          console.log('[login] window.firebase already initialized (compat).');
-        }
-
-        // now use compat auth provider IDs
-        const googleId = window.firebase.auth.GoogleAuthProvider.PROVIDER_ID;
-        const emailId  = window.firebase.auth.EmailAuthProvider.PROVIDER_ID;
-
-        // Reset any existing UI instance
-        if (window._firebaseUiInstance) {
-          try { window._firebaseUiInstance.reset(); } catch(e) {}
-          window._firebaseUiInstance = null;
-        }
-
-        const uiCompat = new window.firebaseui.auth.AuthUI(window.firebase.auth());
-        window._firebaseUiInstance = uiCompat;
-
-        uiCompat.start('#firebaseui-auth-container', {
-          signInSuccessUrl: 'index.html',
-          signInOptions: [
-            googleId,
-            emailId
-          ]
-        });
-
-        console.log('[login] firebaseui started (compat fallback).');
-      } catch (fallbackErr) {
-        console.error('[login] compat fallback also failed. Check console for errors and network loading of scripts.', fallbackErr);
-        // Render a user-friendly message in the DOM so the user isn't left with an empty page
-        const container = document.getElementById('firebaseui-auth-container');
-        container.innerHTML = '<p style="color:#f88">Authentication UI failed to load. Check the console for details.</p>';
-      }
-    }
+    // 4. Initialize the FirebaseUI Widget
+    // This finds the 'firebaseui-auth-container' div and draws the login form inside it.
+    const ui = new firebaseui.auth.AuthUI(firebase.auth());
+    ui.start('#firebaseui-auth-container', uiConfig);
   </script>
 </body>
 </html>
