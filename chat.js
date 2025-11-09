@@ -1,5 +1,5 @@
 // =================================================================
-// ANONTALK - Main Chat Logic (chat.js) - CORRECTED & PRODUCTION-READY
+// ANONTALK - Main Chat Logic (chat.js) - SEND + RECEIVE (Realtime)
 // =================================================================
 
 // --- Firebase SDK Imports ---
@@ -8,19 +8,23 @@ import { auth, db } from './firebase-init.js';
 
 // Import the specific Firebase functions we need for this page.
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { ref, push, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import {
+    ref,
+    push,
+    set,
+    serverTimestamp,
+    onValue,
+    query,
+    orderByChild
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // --- DOM References ---
-// FIX #1: Use more specific, robust selectors that work across all viewport sizes
 const messageInput = document.querySelector('.pill-input');
-const sendButtons = document.querySelectorAll('.send-btn'); // Simplified: just select all send buttons
+const sendButtons = document.querySelectorAll('.send-btn');
 const historyInner = document.querySelector('.history-inner');
+const chatHistoryEl = document.querySelector('.chat-history'); // for auto-scrolling
 
 // --- Validation Helpers ---
-/**
- * Validates that all required DOM elements are present
- * @throws {Error} if any critical DOM element is missing
- */
 function validateDOMElements() {
     if (!messageInput) {
         throw new Error("CRITICAL: Message input element (.pill-input) not found in DOM");
@@ -31,23 +35,22 @@ function validateDOMElements() {
     if (!historyInner) {
         throw new Error("CRITICAL: History container (.history-inner) not found in DOM");
     }
+    if (!chatHistoryEl) {
+        throw new Error("CRITICAL: Chat history scroller (.chat-history) not found in DOM");
+    }
     console.log(`✓ DOM validation passed. Found ${sendButtons.length} send button(s).`);
 }
 
-// --- Main App Logic ---
-let currentUser = null; // Variable to hold the current user info
+// --- App State ---
+let currentUser = null;        // Authenticated user
+let messagesUnsubscribe = null; // To detach the DB listener if needed
 
-/**
- * This function will run ONLY if the user is successfully authenticated.
- * All of our main chat logic will go inside here.
- * @param {object} user - The authenticated user object from Firebase.
- */
+// --- Initialization ---
 function initializeChat(user) {
     currentUser = user;
     console.log(`✓ Welcome, Agent ${user.uid}. The chat is now live.`);
-    
-    // FIX #2: Attach click event listeners to ALL send buttons
-    // This ensures that both desktop and mobile buttons work regardless of visibility state
+
+    // Attach click events to all send buttons (desktop + mobile)
     sendButtons.forEach((button, index) => {
         button.addEventListener('click', () => {
             console.log(`Send button #${index} clicked`);
@@ -55,110 +58,186 @@ function initializeChat(user) {
         });
     });
 
-    // FIX #3: Add Enter key support for input field
-    // Support both Enter (13) and soft-Enter (when key === 'Enter')
+    // Enter key support in input
     messageInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault(); // Prevent newline insertion
+            e.preventDefault();
             console.log("Enter key pressed in message input");
             sendMessage();
         }
     });
 
+    // Start realtime listener AFTER auth is confirmed
+    startMessagesListener();
+
     console.log("✓ Chat initialization complete. Event listeners attached.");
 }
 
-// --- Send Message Function ---
-/**
- * Sends a message to the Firebase Realtime Database
- * FIX #4: Comprehensive error handling and validation
- */
+// --- Send Message ---
 function sendMessage() {
     console.log("sendMessage() called");
 
-    // FIX #5: Validate that user is authenticated before attempting to send
     if (!currentUser) {
         console.error("❌ SEND FAILED: No user logged in! Auth state lost.");
         return;
     }
-    
-    console.log(`Current user UID: ${currentUser.uid}`);
 
-    // FIX #6: Get and validate message text
     const messageText = messageInput.value.trim();
-    
     if (!messageText) {
         console.warn("⚠ Cannot send empty message");
         return;
     }
-    
-    console.log(`Message text length: ${messageText.length} characters`);
 
-    // FIX #7: Create message object with all required fields
-    // All fields must be present for proper database structure
     const messageObject = {
         text: messageText,
         uid: currentUser.uid,
         displayName: currentUser.displayName || "Anonymous",
-        timestamp: serverTimestamp() // This is crucial - must use serverTimestamp() not Date.now()
+        timestamp: serverTimestamp()
     };
-    
-    console.log("Message object created:", {
-        text: messageObject.text.substring(0, 50) + (messageObject.text.length > 50 ? "..." : ""),
-        uid: messageObject.uid,
-        displayName: messageObject.displayName,
-        timestamp: "serverTimestamp()"
-    });
 
-    // FIX #8: Get reference to the messages path in the database
-    // Ensure this path matches your Firebase Realtime Database structure
     const messagesRef = ref(db, 'messages');
-    console.log("Messages ref created for path: /messages");
-    
-    // FIX #9: Use push() to create a new unique message ID, then set the data
-    // This is the correct way to add data to a list in the Realtime Database
     const newMessageRef = push(messagesRef);
-    console.log(`New message reference created with auto-generated ID`);
-    
-    // FIX #10: Call set() with comprehensive error handling
+
     set(newMessageRef, messageObject)
         .then(() => {
             console.log("✓ Message sent successfully to Firebase!");
             console.log(`Message saved to: /messages/${newMessageRef.key}`);
-            
-            // Clear input field ONLY on successful submission
             messageInput.value = '';
-            messageInput.focus(); // Optionally refocus for better UX
-            
-            console.log("✓ Input field cleared. Ready for next message.");
+            messageInput.focus();
         })
         .catch((error) => {
             console.error("❌ FIREBASE ERROR - Failed to send message:", error);
-            console.error("Error code:", error.code);
-            console.error("Error message:", error.message);
-            
-            // FIX #11: Provide specific error guidance based on error code
             if (error.code === "PERMISSION_DENIED") {
-                console.error("📋 TIP: Check your Firebase Realtime Database security rules.");
-                console.error("Rule must allow authenticated users to write to /messages path.");
+                console.error("📋 TIP: Check your Firebase Realtime Database security rules for /messages writes.");
             } else if (error.code === "NETWORK_ERROR") {
                 console.error("📋 TIP: Network error detected. Check your internet connection.");
-            } else {
-                console.error("📋 TIP: Check the Firebase Console for more details.");
             }
         });
 }
 
+// --- Receive Messages (Realtime) ---
+function startMessagesListener() {
+    // If a listener already exists (defensive), detach it first
+    if (typeof messagesUnsubscribe === 'function') {
+        messagesUnsubscribe();
+        messagesUnsubscribe = null;
+    }
+
+    const messagesRef = ref(db, 'messages');
+    const messagesQuery = query(messagesRef, orderByChild('timestamp'));
+
+    console.log("✓ Subscribing to realtime updates at: /messages (ordered by timestamp)");
+
+    messagesUnsubscribe = onValue(
+        messagesQuery,
+        (snapshot) => {
+            // Clear existing to avoid duplicates
+            historyInner.innerHTML = '';
+
+            if (!snapshot.exists()) {
+                console.log("ℹ No messages found.");
+                autoScrollToBottom();
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+
+            snapshot.forEach((childSnap) => {
+                const msg = childSnap.val() || {};
+                const key = childSnap.key;
+                const article = buildMessageElement(msg, key);
+                fragment.appendChild(article);
+            });
+
+            historyInner.appendChild(fragment);
+            autoScrollToBottom();
+        },
+        (error) => {
+            console.error("❌ Realtime listener error for /messages:", error);
+        }
+    );
+}
+
+// --- UI Helpers ---
+function buildMessageElement(message, key) {
+    const text = typeof message.text === 'string' ? message.text : '';
+    const uid = typeof message.uid === 'string' ? message.uid : '';
+    const rawName = typeof message.displayName === 'string' ? message.displayName.trim() : '';
+    const displayName = rawName || 'Anonymous';
+
+    const timeString = formatTimestamp(message.timestamp);
+    const isOutgoing = !!(currentUser && uid === currentUser.uid);
+    const isGod = displayName === 'Anirudh Gupta'; // Admin marker per requirements
+
+    // <article> container
+    const article = document.createElement('article');
+    article.classList.add('msg');
+    if (isOutgoing) article.classList.add('msg--out');
+    if (isGod) article.classList.add('msg--god');
+    article.setAttribute('aria-label', `Message from ${displayName} at ${timeString}`);
+    if (key) article.dataset.key = key;
+
+    // Meta line: </name> // at 3:21pm
+    const meta = document.createElement('div');
+    meta.className = 'msg__meta';
+
+    // </ + name (+ highlight for non-outgoing) + > // at TIME
+    meta.appendChild(document.createTextNode('</'));
+    if (!isOutgoing) {
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'highlight-accent';
+        nameSpan.textContent = displayName;
+        meta.appendChild(nameSpan);
+    } else {
+        meta.appendChild(document.createTextNode(displayName));
+    }
+    meta.appendChild(document.createTextNode(`> // at ${timeString}`));
+
+    // Text bubble
+    const textDiv = document.createElement('div');
+    textDiv.className = 'msg__text';
+    textDiv.textContent = text; // Safe: no HTML injection
+
+    article.appendChild(meta);
+    article.appendChild(textDiv);
+
+    return article;
+}
+
+function formatTimestamp(ts) {
+    // Handles number (ms), numeric string, or missing
+    let ms;
+    if (typeof ts === 'number') {
+        ms = ts;
+    } else if (typeof ts === 'string') {
+        const parsed = parseInt(ts, 10);
+        ms = Number.isFinite(parsed) ? parsed : Date.now();
+    } else if (ts && typeof ts === 'object' && typeof ts.seconds === 'number') {
+        // In case a Firestore-like object slips in; fallback safely
+        ms = ts.seconds * 1000;
+    } else {
+        ms = Date.now();
+    }
+
+    const d = new Date(ms);
+    let t = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+    // Normalize AM/PM spacing/case -> "3:21pm"
+    t = t.replace(/\s?AM/i, 'am').replace(/\s?PM/i, 'pm');
+    return t;
+}
+
+function autoScrollToBottom() {
+    if (!chatHistoryEl) return;
+    // Wait until DOM paints, then scroll
+    requestAnimationFrame(() => {
+        chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+    });
+}
+
 // --- Auth Guard ---
-/**
- * Listen for authentication state changes
- * This ensures the chat only functions when the user is authenticated
- */
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // --- USER IS LOGGED IN ---
         console.log(`✓ User authenticated: ${user.uid}`);
-        
         try {
             validateDOMElements();
             initializeChat(user);
@@ -166,25 +245,16 @@ onAuthStateChanged(auth, (user) => {
             console.error("❌ Initialization failed:", error.message);
         }
     } else {
-        // --- USER IS NOT LOGGED IN ---
         console.warn("🚨 Auth Guard: Access denied. User is not logged in. Redirecting to login...");
-        window.location.replace('login.html'); // Redirect to login page
+        window.location.replace('login.html');
     }
 });
 
-// --- Runtime Error Handler ---
-/**
- * Global error handler for uncaught errors
- * This helps catch any silent failures that might occur
- */
+// --- Runtime Error Handlers ---
 window.addEventListener('error', (event) => {
     console.error("❌ Uncaught error detected:", event.error);
 });
 
-/**
- * Handle unhandled promise rejections
- * Critical for catching Firebase promise errors
- */
 window.addEventListener('unhandledrejection', (event) => {
     console.error("❌ Unhandled promise rejection:", event.reason);
     event.preventDefault();
