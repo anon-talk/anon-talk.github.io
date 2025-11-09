@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ANONTALK - Authentication</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
   <!-- FirebaseUI CSS -->
@@ -21,11 +21,7 @@
       --accent-primary: #00D4FF;
     }
 
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background-color: var(--background-primary);
@@ -48,67 +44,64 @@
       padding: 2rem;
       border: 1px solid var(--background-secondary);
       border-radius: 8px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
     }
 
-    .auth-header {
-      text-align: center;
-      margin-bottom: 2rem;
-      font-family: 'JetBrains Mono', monospace;
-    }
+    .auth-header { text-align: center; margin-bottom: 2rem; font-family: 'JetBrains Mono', monospace; }
 
-    .auth-title {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 0.5rem;
-    }
+    .auth-title { font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
+    .auth-subtitle { font-size: 14px; color: var(--text-secondary); }
 
-    .auth-subtitle {
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-
-    /* --- FirebaseUI Customization --- */
-    /* You can add more rules here to override FirebaseUI's default styles */
-    .firebaseui-idp-button {
-        background-color: var(--background-secondary) !important;
-        border-radius: 999px !important;
-    }
-    .firebaseui-idp-text {
-        color: var(--text-primary) !important;
-    }
+    /* FirebaseUI button tweaks */
+    .firebaseui-idp-button { background-color: var(--background-secondary) !important; border-radius: 999px !important; }
+    .firebaseui-idp-text { color: var(--text-primary) !important; }
   </style>
 </head>
 <body>
-
   <div class="auth-container">
     <div class="auth-header">
       <h1 class="auth-title">ANONTALK Network</h1>
       <p class="auth-subtitle">Authentication Required</p>
     </div>
 
-    <!-- The FirebaseUI widget will be rendered inside this div. -->
+    <!-- FirebaseUI mount point -->
     <div id="firebaseui-auth-container"></div>
   </div>
 
-  <!-- Import Firebase and FirebaseUI Scripts -->
+  <!-- FirebaseUI (CDN script) - leaves window.firebaseui available -->
   <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
 
+  <!-- Use ES modules for the modular Firebase SDK and our central init -->
   <script type="module">
-    // Import the auth service from our central file
+    // Import the modular auth instance created in firebase-init.js
     import { auth } from './firebase-init.js';
 
-    // Initialize the FirebaseUI Widget
-    const ui = new firebaseui.auth.AuthUI(auth);
+    // Import provider classes (modular SDK) to get PROVIDER_ID constants
+    import { GoogleAuthProvider, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+    // Make sure firebaseui (global) is available
+    if (!window.firebaseui || !window.firebaseui.auth) {
+      console.error("FirebaseUI library did not load. Check network or script order.");
+      // You can optionally show a friendly UI fallback here.
+      throw new Error("FirebaseUI not available");
+    }
+
+    // Initialize the FirebaseUI Widget using the modular auth instance.
+    // firebaseui exposes a global 'firebaseui' object; its AuthUI accepts a modular Auth instance.
+    const ui = new window.firebaseui.auth.AuthUI(auth);
+
+    // Configure and start the widget.
     ui.start('#firebaseui-auth-container', {
-      // The URL to redirect to after a successful sign-in.
       signInSuccessUrl: 'index.html',
       signInOptions: [
-        // List of OAuth providers supported.
-        firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-        firebase.auth.EmailAuthProvider.PROVIDER_ID
+        // Use modular provider IDs (no global `firebase` required)
+        GoogleAuthProvider.PROVIDER_ID,
+        EmailAuthProvider.PROVIDER_ID
       ],
+      // Optional: customize behavior, callbacks, etc.
+      // callbacks: {
+      //   signInSuccessWithAuthResult(authResult, redirectUrl) { return true; }
+      // }
     });
   </script>
 </body>
