@@ -171,6 +171,29 @@
       font-size: clamp(48px, 8vw, 80px);
     }
 
+    /* --- Profile Setup Screen --- */
+    #profile-setup-screen {
+      grid-template-rows: 0.8fr 1fr auto;
+      align-items: start;
+      justify-items: stretch;
+      row-gap: clamp(2.5rem, 8vh, 4rem);
+    }
+
+    #profile-setup-screen .brand-header {
+      justify-self: center;
+      align-self: end;
+    }
+
+    #profile-setup-screen .brand-logo {
+      width: 64px;
+      height: 64px;
+    }
+
+    #profile-setup-screen .brand-title {
+      font-size: clamp(28px, 5vw, 36px);
+      letter-spacing: 0.08em;
+    }
+
     .gateway-body {
         grid-row: 2;
         display: flex;
@@ -208,10 +231,8 @@
       box-shadow: 0 0 0 2px var(--accent-primary);
     }
 
-    /* Add this with your other input styles */
     .pill-input.error {
       animation: shake 0.5s;
-      /* Adds a red glow to indicate an error */
       box-shadow: 0 0 0 2px #FF0000; 
     }
 
@@ -240,7 +261,6 @@
       50%, 100% { opacity: 0; }
     }
 
-    /* Add this with your other animation keyframes */
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-6px); }
@@ -280,6 +300,11 @@
     .gateway-footer__action:active {
       color: var(--accent-primary);
       outline: none;
+    }
+
+    .gateway-footer__action:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
     }
 
     .agent-name {
@@ -340,13 +365,18 @@
             font-size: clamp(16px, 4vw, 18px);
         }
 
-        #gateway-screen .brand-logo {
+        #gateway-screen .brand-logo,
+        #profile-setup-screen .brand-logo {
             width: clamp(48px, 15vw, 64px);
             height: clamp(48px, 15vw, 64px);
         }
 
         #gateway-screen .brand-title {
             font-size: clamp(40px, 12vw, 60px);
+        }
+
+        #profile-setup-screen .brand-title {
+            font-size: clamp(22px, 6vw, 28px);
         }
 
         .input-container {
@@ -362,20 +392,19 @@
             font-size: 16px;
         }
 
-        /* THIS IS THE ONLY MODIFIED SECTION */
         .gateway-footer {
-            flex-direction: row; /* Revert to horizontal layout */
+            flex-direction: row;
             align-items: center;
-            justify-content: space-between; /* Push to corners */
+            justify-content: space-between;
             gap: 1rem;
-            padding: 0; /* Remove padding */
+            padding: 0;
         }
 
         .gateway-footer__action {
-            background-color: transparent; /* Remove button background */
+            background-color: transparent;
             border-radius: 0;
-            padding: 0; /* Remove button padding */
-            text-align: inherit; /* Inherit text alignment */
+            padding: 0;
+            text-align: inherit;
         }
     }
   </style>
@@ -435,6 +464,42 @@
         </button>
       </footer>
     </section>
+
+    <section id="profile-setup-screen" class="screen hidden" aria-labelledby="profile-setup-title" aria-hidden="true">
+      <header class="brand-header">
+        <div class="brand-logo" aria-hidden="true"></div>
+        <h2 id="profile-setup-title" class="brand-title">[AGENT PROFILE REGISTRATION]</h2>
+      </header>
+
+      <div class="gateway-body">
+        <div class="input-container">
+          <label class="visually-hidden" for="real-name-input">Enter your real name</label>
+          <div class="input-wrapper">
+            <input
+              id="real-name-input"
+              type="text"
+              class="pill-input"
+              placeholder=" "
+              autocomplete="name"
+              aria-describedby="profile-input-help"
+            >
+            <div class="fake-placeholder" aria-hidden="true">
+              <span>&gt; Enter your real name</span>
+              <span class="fake-placeholder__cursor">_</span>
+            </div>
+          </div>
+          <span id="profile-input-help" class="visually-hidden">
+            Your real name will be private; only you can see it.
+          </span>
+        </div>
+      </div>
+
+      <footer class="gateway-footer" aria-label="Profile setup controls">
+        <button id="register-agent-btn" class="gateway-footer__action" type="button">
+          &lt;/REGISTER_AGENT&gt;
+        </button>
+      </footer>
+    </section>
   </main>
 
   <section
@@ -483,7 +548,6 @@
       setTimeout(() => {
         toggleVisibility(bootScreen, true);
         toggleVisibility(gatewayScreen, false);
-        // initInput.focus(); // REMOVED
       }, totalDelay);
     };
 
