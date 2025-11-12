@@ -1,15 +1,13 @@
 // =================================================================
-// ANONTALK - Main Application Logic (app.js)
+// ANONTALK - Main Application Logic (app.js) with Profile Setup
 // =================================================================
 
 // --- Firebase SDK Imports (Modern v9+ modular syntax) ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-
-// 1. Paste Your Firebase Configuration Object Here
-// This is the same config object you used in login.html
+// --- Firebase Configuration ---
 const firebaseConfig = {
     apiKey: "AIzaSyD-vVX8crq-jPCCug1T2KLWvoSlI0odtzs",
     authDomain: "anontalk-f43b3.firebaseapp.com",
@@ -19,87 +17,195 @@ const firebaseConfig = {
     appId: "1:715920696505:web:9a2bec0afebdbfe9b22768"
 };
 
-// 2. Initialize Firebase and Services
+// --- Initialize Firebase and Services ---
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// 3. Define the correct Initialization Key
-const CORRECT_INIT_KEY = "AUTHORIZE_OPERATOR_ANIRUDH"; // You can change this secret key!
+// --- Configuration ---
+const CORRECT_INIT_KEY = "AUTHORIZE_OPERATOR_ANIRUDH";
 
 // --- DOM Element References ---
 const airlockScreen = document.getElementById('airlock-screen');
 const gatewayScreen = document.getElementById('gateway-screen');
+const profileScreen = document.getElementById('profile-setup-screen');
+
 const requestAccessButton = document.querySelector('.request-access-button');
 const initKeyInput = document.getElementById('gateway-init-key');
-const godModeButton = document.querySelector('.gateway-footer__action[type="button"]:nth-of-type(2)'); // A more robust way to select it
 
-// --- Core Application Logic ---
+const realNameInput = document.getElementById('real-name-input');
+const registerAgentBtn = document.getElementById('register-agent-btn');
+
+const godModeButton = document.querySelector('.gateway-footer__action[type="button"]:nth-of-type(2)');
+
+// --- Utility Functions ---
 
 /**
- * The main listener that runs when the page loads.
- * It checks the user's login state and shows the correct screen.
+ * Shows only the specified screen, hiding all others
  */
-onAuthStateChanged(auth, user => {
-    if (user) {
-        // --- USER IS LOGGED IN ---
-        console.log("Auth state changed: User is LOGGED IN", user.uid);
+function showOnlyScreen(screenEl) {
+  const screens = [airlockScreen, gatewayScreen, profileScreen];
+  screens.forEach(el => {
+    if (!el) return;
+    const show = el === screenEl;
+    el.classList.toggle('hidden', !show);
+    el.setAttribute('aria-hidden', show ? 'false' : 'true');
+  });
+}
 
-        // Hide the Airlock screen, show the Gateway screen
-        airlockScreen.classList.add('hidden');
-        gatewayScreen.classList.remove('hidden');
+/**
+ * Generates a random integer between min and max (inclusive)
+ */
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
-        // Now that the user is logged in, we can add the event listener for the init key
-        initKeyInput.addEventListener('keydown', handleInitKeySubmit);
+/**
+ * Available codenames for agent ID generation
+ */
+const CODENAMES = [
+  'OPERATOR', 'SPECTRE', 'GHOST', 'ECHO', 'PHANTOM', 
+  'RAVEN', 'NOVA', 'MAVERICK', 'SENTINEL', 'FALCON'
+];
 
-    } else {
-        // --- USER IS NOT LOGGED IN ---
-        console.log("Auth state changed: User is LOGGED OUT");
+// --- State Management (prevents duplicate listeners) ---
+let initKeyListenerAttached = false;
+let registerListenerAttached = false;
 
-        // Show the Airlock screen, hide the Gateway screen
-        airlockScreen.classList.remove('hidden');
-        gatewayScreen.classList.add('hidden');
+// --- Authentication Flow ---
+
+/**
+ * Main authentication listener
+ * Routes users to appropriate screen based on auth state and profile status
+ */
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    console.log("Auth state changed: User is LOGGED IN", user.uid);
+
+    try {
+      const userRef = ref(db, `users/${user.uid}`);
+      const snap = await get(userRef);
+
+      if (snap.exists()) {
+        // Profile exists -> proceed to Gateway
+        console.log("Profile found for user:", user.uid);
+        showOnlyScreen(gatewayScreen);
+        attachInitKeyListener();
+      } else {
+        // No profile -> force profile setup
+        console.log("No profile found. Redirecting to profile setup.");
+        showOnlyScreen(profileScreen);
+        attachRegisterListener();
+      }
+    } catch (err) {
+      console.error("Failed to check user profile:", err);
+      // Fail-safe: send to profile setup to avoid blocking
+      showOnlyScreen(profileScreen);
+      attachRegisterListener();
     }
+  } else {
+    console.log("Auth state changed: User is LOGGED OUT");
+    showOnlyScreen(airlockScreen);
+  }
 });
 
+// --- Request Access Flow ---
+
 /**
- * Handles the click on the initial "Request Access" button.
- * This function redirects the user to the login page.
+ * Handles the "Request Access" button on Airlock screen
+ * Redirects to login page
  */
 requestAccessButton.addEventListener('click', () => {
-    // NOTE: The boot-up animation is temporarily disabled here.
-    // We redirect directly to the login page.
-    window.location.href = 'login.html';
+  window.location.href = 'login.html';
 });
 
+// --- Gateway: Initialization Key ---
+
 /**
- * Handles the submission of the Initialization Key.
- * This runs when the user presses "Enter" in the input field.
+ * Attaches the init key listener (once only)
+ */
+function attachInitKeyListener() {
+  if (initKeyListenerAttached) return;
+  initKeyListenerAttached = true;
+
+  initKeyInput.addEventListener('keydown', handleInitKeySubmit);
+}
+
+/**
+ * Handles initialization key submission
+ * Validates key and redirects to chat on success
  */
 function handleInitKeySubmit(event) {
-    if (event.key === 'Enter') {
-        const enteredKey = initKeyInput.value.trim();
+  if (event.key === 'Enter') {
+    const enteredKey = initKeyInput.value.trim();
 
-        if (enteredKey === CORRECT_INIT_KEY) {
-            // SUCCESS: The key is correct.
-            console.log("Initialization Key correct. Redirecting to chat...");
-            // Redirect the user to the main chat page.
-            window.location.href = 'chat.html';
-        } else {
-            // FAILURE: The key is incorrect.
-            console.error("Incorrect Initialization Key entered.");
-            
-            // Remove the old alert
-            // alert("ERROR: Invalid Initialization Key."); 
-
-            // Add the 'error' class to trigger the animation and red glow
-            initKeyInput.classList.add('error');
-            initKeyInput.value = ''; // Clear the input
-
-            // After the animation finishes, remove the class so it can play again
-            setTimeout(() => {
-                initKeyInput.classList.remove('error');
-            }, 500); // This duration must match the animation duration
-        }
+    if (enteredKey === CORRECT_INIT_KEY) {
+      console.log("Initialization Key correct. Redirecting to chat...");
+      window.location.href = 'chat.html';
+    } else {
+      console.error("Incorrect Initialization Key entered.");
+      initKeyInput.classList.add('error');
+      initKeyInput.value = '';
+      setTimeout(() => initKeyInput.classList.remove('error'), 500);
     }
+  }
+}
+
+// --- Profile Setup: Register Agent ---
+
+/**
+ * Attaches the register button listener (once only)
+ */
+function attachRegisterListener() {
+  if (registerListenerAttached) return;
+  registerListenerAttached = true;
+
+  registerAgentBtn.addEventListener('click', registerAgent);
+}
+
+/**
+ * Handles profile registration
+ * Creates user profile with real name and generated agent ID
+ */
+async function registerAgent() {
+  const user = auth.currentUser;
+  if (!user) {
+    console.error("No authenticated user. Cannot register profile.");
+    showOnlyScreen(airlockScreen);
+    return;
+  }
+
+  const realName = (realNameInput.value || '').trim();
+  if (!realName) {
+    realNameInput.classList.add('error');
+    setTimeout(() => realNameInput.classList.remove('error'), 500);
+    return;
+  }
+
+  // Generate Agent ID like OPERATOR_7
+  const codename = CODENAMES[randomInt(0, CODENAMES.length - 1)];
+  const number = randomInt(1, 99);
+  const agentId = `${codename}_${number}`;
+
+  const profileData = {
+    realName,
+    agentId,
+    uid: user.uid
+  };
+
+  // Disable button during save to avoid double submissions
+  registerAgentBtn.disabled = true;
+
+  try {
+    await set(ref(db, `users/${user.uid}`), profileData);
+    console.log("Profile created successfully:", profileData);
+
+    // Transition to Gateway
+    showOnlyScreen(gatewayScreen);
+    attachInitKeyListener();
+  } catch (error) {
+    console.error("Failed to save profile:", error);
+    // Re-enable to try again
+    registerAgentBtn.disabled = false;
+  }
 }
