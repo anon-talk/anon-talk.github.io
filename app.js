@@ -1,7 +1,7 @@
 // =================================================================
-// ANONTALK - Main Application Logic (app.js) - FINAL FIX
-// Solves the "black screen" issue by revealing the main app container
-// only after authentication is confirmed.
+// ANONTALK - Main Application Logic (app.js) - DEFINITIVE FIX
+// This version uses a one-time promise-based auth check on startup
+// to eliminate race conditions and ensure the correct screen is always shown.
 // =================================================================
 
 // --- Firebase SDK Imports ---
@@ -29,7 +29,7 @@ const CORRECT_INIT_KEY = "AUTHORIZE_OPERATOR_ANIRUDH";
 
 // --- DOM Element References ---
 const loadingIndicator = document.getElementById('loading-indicator');
-const mainAppContainer = document.getElementById('app'); // <-- NEW: Reference to the main container
+const mainAppContainer = document.getElementById('app');
 const airlockScreen = document.getElementById('airlock-screen');
 const gatewayScreen = document.getElementById('gateway-screen');
 const profileScreen = document.getElementById('profile-setup-screen');
@@ -37,80 +37,109 @@ const requestAccessButton = document.querySelector('.request-access-button');
 const initKeyInput = document.getElementById('gateway-init-key');
 const realNameInput = document.getElementById('real-name-input');
 const registerAgentBtn = document.getElementById('register-agent-btn');
-const godModeButton = document.querySelector('.gateway-footer__action[type="button"]:nth-of-type(2)');
 
-// --- Utility Functions ---
+// --- State Management ---
+let initKeyListenerAttached = false;
+let registerListenerAttached = false;
 
-/**
- * Shows only the specified screen, hiding all others.
- * This function now assumes the main app container is already visible.
- */
+// --- UTILITY FUNCTIONS ---
 function showOnlyScreen(screenEl) {
   const screens = [airlockScreen, gatewayScreen, profileScreen];
   screens.forEach(el => {
     if (!el) return;
-    const show = el === screenEl;
-    el.classList.toggle('hidden', !show);
-    el.setAttribute('aria-hidden', show ? 'false' : 'true');
+    el.classList.toggle('hidden', el !== screenEl);
+    el.setAttribute('aria-hidden', el !== screenEl);
   });
 }
 
-/**
- * Generates a random integer between min and max (inclusive)
- */
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 const CODENAMES = ['OPERATOR', 'SPECTRE', 'GHOST', 'ECHO', 'PHANTOM', 'RAVEN', 'NOVA', 'MAVERICK', 'SENTINEL', 'FALCON'];
 
-// --- State Management ---
-let initKeyListenerAttached = false;
-let registerListenerAttached = false;
-
-// --- Authentication Flow ---
+// --- CORE APPLICATION LOGIC ---
 
 /**
- * Main authentication listener. This is the entry point of the app logic.
+ * NEW: A function that returns a Promise which resolves with the
+ * first definitive authentication state from Firebase. This is the key to the fix.
  */
-onAuthStateChanged(auth, async (user) => {
-  // First, hide the main loading indicator and reveal the application container.
-  // This happens once the very first auth check is complete.
+function getInitialAuthState() {
+  return new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe(); // We only want the *first* result, so we immediately unsubscribe.
+      resolve(user);   // Resolve the promise with the user object or null.
+    });
+  });
+}
+
+/**
+ * The main initialization function for the entire application.
+ */
+async function initialize() {
+  // 1. Wait until we know for sure if a user is logged in or not.
+  const user = await getInitialAuthState();
+
+  // 2. Now that we have the answer, hide the loader and show the app container.
   loadingIndicator.classList.add('hidden');
   mainAppContainer.classList.remove('hidden');
 
+  // 3. Route the user to the correct screen based on the definitive auth state.
   if (user) {
-    console.log("Auth state changed: User is LOGGED IN", user.uid);
-    try {
-      const userRef = ref(db, `users/${user.uid}`);
-      const snap = await get(userRef);
+    console.log("Initial state: User is LOGGED IN", user.uid);
+    await routeUser(user);
+  } else {
+    console.log("Initial state: User is LOGGED OUT");
+    showOnlyScreen(airlockScreen);
+  }
 
-      if (snap.exists()) {
-        console.log("Profile found for user:", user.uid);
-        showOnlyScreen(gatewayScreen);
-        attachInitKeyListener();
+  // 4. (Optional but good practice) Attach a persistent listener for real-time logouts.
+  onAuthStateChanged(auth, (currentUser) => {
+    if (!currentUser) {
+      console.log("User logged out in real-time. Returning to Airlock.");
+      // You might want to redirect to index.html if they are on another page
+      if (window.location.pathname.includes('chat.html')) {
+          window.location.href = '/';
       } else {
-        console.log("No profile found. Redirecting to profile setup.");
-        showOnlyScreen(profileScreen);
-        attachRegisterListener();
+          showOnlyScreen(airlockScreen);
       }
-    } catch (err) {
-      console.error("Failed to check user profile:", err);
+    }
+  });
+}
+
+/**
+ * Determines whether to show the profile setup or gateway screen for a logged-in user.
+ */
+async function routeUser(user) {
+  try {
+    const userRef = ref(db, `users/${user.uid}`);
+    const snap = await get(userRef);
+
+    if (snap.exists()) {
+      console.log("Profile found. Showing Gateway.");
+      showOnlyScreen(gatewayScreen);
+      attachInitKeyListener();
+    } else {
+      console.log("No profile found. Showing Profile Setup.");
       showOnlyScreen(profileScreen);
       attachRegisterListener();
     }
-  } else {
-    console.log("Auth state changed: User is LOGGED OUT");
-    showOnlyScreen(airlockScreen);
+  } catch (err) {
+    console.error("Failed to check user profile:", err);
+    // Fail-safe to the profile screen to prevent getting stuck
+    showOnlyScreen(profileScreen);
+    attachRegisterListener();
   }
-});
+}
 
-// --- Request Access Flow ---
+// --- Event Listeners and Handlers ---
+
 requestAccessButton.addEventListener('click', () => {
+  // The boot animation is purely cosmetic and gets interrupted by the redirect.
+  // The primary action is the redirect itself.
   window.location.href = 'login.html';
 });
 
-// --- Gateway: Initialization Key ---
 function attachInitKeyListener() {
   if (initKeyListenerAttached) return;
   initKeyListenerAttached = true;
@@ -132,32 +161,36 @@ function handleInitKeySubmit(event) {
   }
 }
 
-// --- Profile Setup: Register Agent ---
 function attachRegisterListener() {
   if (registerListenerAttached) return;
   registerListenerAttached = true;
   registerAgentBtn.addEventListener('click', registerAgent);
+  realNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') registerAgent();
+  });
 }
 
 async function registerAgent() {
   const user = auth.currentUser;
   if (!user) {
-    console.error("No authenticated user. Cannot register profile.");
+    console.error("No authenticated user during registration attempt.");
     showOnlyScreen(airlockScreen);
     return;
   }
+
   const realName = (realNameInput.value || '').trim();
   if (!realName) {
     realNameInput.classList.add('error');
     setTimeout(() => realNameInput.classList.remove('error'), 500);
     return;
   }
+
   const codename = CODENAMES[randomInt(0, CODENAMES.length - 1)];
   const number = randomInt(1, 99);
   const agentId = `${codename}_${number}`;
   const profileData = { realName, agentId, uid: user.uid };
+  
   registerAgentBtn.disabled = true;
-
   try {
     await set(ref(db, `users/${user.uid}`), profileData);
     console.log("Profile created successfully:", profileData);
@@ -168,3 +201,6 @@ async function registerAgent() {
     registerAgentBtn.disabled = false;
   }
 }
+
+// --- Application Start ---
+initialize();
