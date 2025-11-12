@@ -64,28 +64,6 @@
       white-space: nowrap;
       border: 0;
     }
-    
-    #loading-indicator {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: var(--background-primary);
-      z-index: 999;
-    }
-    .loader-logo {
-      width: 64px;
-      height: 64px;
-      background-color: var(--accent-primary);
-      clip-path: polygon(0% 0%, 100% 0%, 100% 50%, 50% 50%, 50% 100%, 0% 100%);
-      border-radius: 50%;
-      animation: pulse 1.5s infinite ease-in-out;
-    }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(0.9); opacity: 0.7; }
-    }
 
     .screen {
       --safe-area-bottom: env(safe-area-inset-bottom, 0px);
@@ -126,6 +104,7 @@
       font-variant-ligatures: none;
     }
 
+    /* --- Airlock Screen --- */
     #airlock-screen {
       grid-template-rows: 1fr auto 1fr;
       justify-items: center;
@@ -170,30 +149,26 @@
       outline: none;
     }
 
-    #gateway-screen, #profile-setup-screen {
+    /* --- Gateway Screen --- */
+    #gateway-screen {
       grid-template-rows: 0.8fr 1fr auto;
       align-items: start;
       justify-items: stretch;
       row-gap: clamp(2.5rem, 8vh, 4rem);
     }
 
-    #gateway-screen .brand-header, #profile-setup-screen .brand-header {
+    #gateway-screen .brand-header {
       justify-self: center;
       align-self: end;
     }
 
-    #gateway-screen .brand-logo, #profile-setup-screen .brand-logo {
+    #gateway-screen .brand-logo {
       width: 64px;
       height: 64px;
     }
 
     #gateway-screen .brand-title {
       font-size: clamp(48px, 8vw, 80px);
-    }
-
-    #profile-setup-screen .brand-title {
-      font-size: clamp(28px, 5vw, 36px);
-      letter-spacing: 0.08em;
     }
 
     .gateway-body {
@@ -233,8 +208,10 @@
       box-shadow: 0 0 0 2px var(--accent-primary);
     }
 
+    /* Add this with your other input styles */
     .pill-input.error {
       animation: shake 0.5s;
+      /* Adds a red glow to indicate an error */
       box-shadow: 0 0 0 2px #FF0000; 
     }
 
@@ -263,6 +240,7 @@
       50%, 100% { opacity: 0; }
     }
 
+    /* Add this with your other animation keyframes */
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-6px); }
@@ -304,11 +282,6 @@
       outline: none;
     }
 
-    .gateway-footer__action:disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
-
     .agent-name {
       color: inherit;
       text-decoration: underline;
@@ -334,6 +307,10 @@
       font-variant-ligatures: none;
       z-index: 100;
       overflow-y: auto;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        /* motion preferences */
     }
 
     @media (max-width: 768px) {
@@ -363,18 +340,13 @@
             font-size: clamp(16px, 4vw, 18px);
         }
 
-        #gateway-screen .brand-logo,
-        #profile-setup-screen .brand-logo {
+        #gateway-screen .brand-logo {
             width: clamp(48px, 15vw, 64px);
             height: clamp(48px, 15vw, 64px);
         }
 
         #gateway-screen .brand-title {
             font-size: clamp(40px, 12vw, 60px);
-        }
-
-        #profile-setup-screen .brand-title {
-            font-size: clamp(22px, 6vw, 28px);
         }
 
         .input-container {
@@ -390,31 +362,27 @@
             font-size: 16px;
         }
 
+        /* THIS IS THE ONLY MODIFIED SECTION */
         .gateway-footer {
-            flex-direction: row;
+            flex-direction: row; /* Revert to horizontal layout */
             align-items: center;
-            justify-content: space-between;
+            justify-content: space-between; /* Push to corners */
             gap: 1rem;
-            padding: 0;
+            padding: 0; /* Remove padding */
         }
 
         .gateway-footer__action {
-            background-color: transparent;
+            background-color: transparent; /* Remove button background */
             border-radius: 0;
-            padding: 0;
-            text-align: inherit;
+            padding: 0; /* Remove button padding */
+            text-align: inherit; /* Inherit text alignment */
         }
     }
   </style>
 </head>
 <body>
-
-  <div id="loading-indicator">
-    <div class="loader-logo"></div>
-  </div>
-
-  <main id="app" class="hidden">
-    <section id="airlock-screen" class="screen" aria-labelledby="airlock-title" aria-hidden="true">
+  <main id="app">
+    <section id="airlock-screen" class="screen" aria-labelledby="airlock-title" aria-hidden="false">
       <header class="brand-header">
         <div class="brand-logo" aria-hidden="true"></div>
         <h1 id="airlock-title" class="brand-title">ANONTALK</h1>
@@ -467,42 +435,6 @@
         </button>
       </footer>
     </section>
-
-    <section id="profile-setup-screen" class="screen hidden" aria-labelledby="profile-setup-title" aria-hidden="true">
-      <header class="brand-header">
-        <div class="brand-logo" aria-hidden="true"></div>
-        <h2 id="profile-setup-title" class="brand-title">[AGENT PROFILE REGISTRATION]</h2>
-      </header>
-
-      <div class="gateway-body">
-        <div class="input-container">
-          <label class="visually-hidden" for="real-name-input">Enter your real name</label>
-          <div class="input-wrapper">
-            <input
-              id="real-name-input"
-              type="text"
-              class="pill-input"
-              placeholder=" "
-              autocomplete="name"
-              aria-describedby="profile-input-help"
-            >
-            <div class="fake-placeholder" aria-hidden="true">
-              <span>&gt; Enter your real name</span>
-              <span class="fake-placeholder__cursor">_</span>
-            </div>
-          </div>
-          <span id="profile-input-help" class="visually-hidden">
-            Your real name will be private; only you can see it.
-          </span>
-        </div>
-      </div>
-
-      <footer class="gateway-footer" aria-label="Profile setup controls">
-        <button id="register-agent-btn" class="gateway-footer__action" type="button">
-          &lt;/REGISTER_AGENT&gt;
-        </button>
-      </footer>
-    </section>
   </main>
 
   <section
@@ -551,6 +483,7 @@
       setTimeout(() => {
         toggleVisibility(bootScreen, true);
         toggleVisibility(gatewayScreen, false);
+        // initInput.focus(); // REMOVED
       }, totalDelay);
     };
 
