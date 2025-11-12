@@ -1,5 +1,6 @@
 // =================================================================
 // ANONTALK - Main Application Logic (app.js) with Profile Setup
+// FIXED: Now handles initial auth load state correctly.
 // =================================================================
 
 // --- Firebase SDK Imports (Modern v9+ modular syntax) ---
@@ -26,6 +27,7 @@ const db = getDatabase(app);
 const CORRECT_INIT_KEY = "AUTHORIZE_OPERATOR_ANIRUDH";
 
 // --- DOM Element References ---
+const loadingIndicator = document.getElementById('loading-indicator'); // <-- FIX: Reference to the new loader
 const airlockScreen = document.getElementById('airlock-screen');
 const gatewayScreen = document.getElementById('gateway-screen');
 const profileScreen = document.getElementById('profile-setup-screen');
@@ -41,9 +43,14 @@ const godModeButton = document.querySelector('.gateway-footer__action[type="butt
 // --- Utility Functions ---
 
 /**
- * Shows only the specified screen, hiding all others
+ * Shows only the specified screen, hiding all others and the loading indicator.
  */
 function showOnlyScreen(screenEl) {
+  // <-- FIX: Hide the loading indicator whenever a screen is shown
+  if (loadingIndicator) {
+    loadingIndicator.classList.add('hidden');
+  }
+
   const screens = [airlockScreen, gatewayScreen, profileScreen];
   screens.forEach(el => {
     if (!el) return;
@@ -64,7 +71,7 @@ function randomInt(min, max) {
  * Available codenames for agent ID generation
  */
 const CODENAMES = [
-  'OPERATOR', 'SPECTRE', 'GHOST', 'ECHO', 'PHANTOM', 
+  'OPERATOR', 'SPECTRE', 'GHOST', 'ECHO', 'PHANTOM',
   'RAVEN', 'NOVA', 'MAVERICK', 'SENTINEL', 'FALCON'
 ];
 
