@@ -1,15 +1,15 @@
 // =================================================================
-// ANONTALK - Main Application Logic (app.js) - PERPLEXITY-INFORMED FIX
-// This version correctly handles the `signInWithRedirect` flow by
-// explicitly calling `getRedirectResult` on startup.
+// ANONTALK - Main Application Logic (app.js)
 // =================================================================
 
-// --- Firebase SDK Imports ---
+// --- Firebase SDK Imports (Modern v9+ modular syntax) ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// --- Firebase Configuration ---
+
+// 1. Paste Your Firebase Configuration Object Here
+// This is the same config object you used in login.html
 const firebaseConfig = {
     apiKey: "AIzaSyD-vVX8crq-jPCCug1T2KLWvoSlI0odtzs",
     authDomain: "anontalk-f43b3.firebaseapp.com",
@@ -19,152 +19,87 @@ const firebaseConfig = {
     appId: "1:715920696505:web:9a2bec0afebdbfe9b22768"
 };
 
-// --- Initialize Firebase and Services ---
+// 2. Initialize Firebase and Services
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// --- Configuration ---
-const CORRECT_INIT_KEY = "AUTHORIZE_OPERATOR_ANIRUDH";
+// 3. Define the correct Initialization Key
+const CORRECT_INIT_KEY = "AUTHORIZE_OPERATOR_ANIRUDH"; // You can change this secret key!
 
 // --- DOM Element References ---
-const loadingIndicator = document.getElementById('loading-indicator');
-const mainAppContainer = document.getElementById('app');
 const airlockScreen = document.getElementById('airlock-screen');
 const gatewayScreen = document.getElementById('gateway-screen');
-const profileScreen = document.getElementById('profile-setup-screen');
 const requestAccessButton = document.querySelector('.request-access-button');
 const initKeyInput = document.getElementById('gateway-init-key');
-const realNameInput = document.getElementById('real-name-input');
-const registerAgentBtn = document.getElementById('register-agent-btn');
+const godModeButton = document.querySelector('.gateway-footer__action[type="button"]:nth-of-type(2)'); // A more robust way to select it
 
-// --- State Management ---
-let initKeyListenerAttached = false;
-let registerListenerAttached = false;
-
-// --- UTILITY FUNCTIONS ---
-function showOnlyScreen(screenEl) {
-  const screens = [airlockScreen, gatewayScreen, profileScreen];
-  screens.forEach(el => {
-    if (el) el.classList.toggle('hidden', el !== screenEl);
-  });
-}
-
-function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-const CODENAMES = ['OPERATOR', 'SPECTRE', 'GHOST', 'ECHO', 'PHANTOM', 'RAVEN', 'NOVA', 'MAVERICK', 'SENTINEL', 'FALCON'];
-
-// --- CORE APPLICATION LOGIC ---
+// --- Core Application Logic ---
 
 /**
- * The main initialization function for the entire application.
+ * The main listener that runs when the page loads.
+ * It checks the user's login state and shows the correct screen.
  */
-async function initialize() {
-  try {
-    // 1. CRITICAL STEP: Actively process the redirect result.
-    // This is the "handshake". It will be null if no redirect happened.
-    console.log("Checking for redirect result...");
-    await getRedirectResult(auth);
-    console.log("Redirect result processed.");
-
-  } catch (error) {
-    console.error("Error processing redirect result:", error);
-  }
-
-  // 2. NOW, we can safely listen for the auth state.
-  // This listener will now fire with the correct, post-handshake user state.
-  const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    unsubscribe(); // We only need this initial check once on page load.
-
-    // 3. Hide loader and show the main application content.
-    loadingIndicator.classList.add('hidden');
-    mainAppContainer.classList.remove('hidden');
-
-    // 4. Route the user based on the definitive state.
+onAuthStateChanged(auth, user => {
     if (user) {
-      console.log("Definitive state: User is LOGGED IN", user.uid);
-      await routeUser(user);
-    } else {
-      console.log("Definitive state: User is LOGGED OUT");
-      showOnlyScreen(airlockScreen);
-    }
-  });
-}
+        // --- USER IS LOGGED IN ---
+        console.log("Auth state changed: User is LOGGED IN", user.uid);
 
-/**
- * Determines whether to show the profile setup or gateway screen for a logged-in user.
- */
-async function routeUser(user) {
-  try {
-    const userRef = ref(db, `users/${user.uid}`);
-    const snap = await get(userRef);
-    if (snap.exists()) {
-      console.log("Profile found. Showing Gateway.");
-      showOnlyScreen(gatewayScreen);
-      attachInitKeyListener();
-    } else {
-      console.log("No profile found. Showing Profile Setup.");
-      showOnlyScreen(profileScreen);
-      attachRegisterListener();
-    }
-  } catch (err) {
-    console.error("Failed to check user profile:", err);
-    showOnlyScreen(profileScreen);
-    attachRegisterListener();
-  }
-}
+        // Hide the Airlock screen, show the Gateway screen
+        airlockScreen.classList.add('hidden');
+        gatewayScreen.classList.remove('hidden');
 
-// --- Event Listeners and Handlers ---
-requestAccessButton.addEventListener('click', () => {
-  window.location.href = 'login.html';
+        // Now that the user is logged in, we can add the event listener for the init key
+        initKeyInput.addEventListener('keydown', handleInitKeySubmit);
+
+    } else {
+        // --- USER IS NOT LOGGED IN ---
+        console.log("Auth state changed: User is LOGGED OUT");
+
+        // Show the Airlock screen, hide the Gateway screen
+        airlockScreen.classList.remove('hidden');
+        gatewayScreen.classList.add('hidden');
+    }
 });
 
-function attachInitKeyListener() {
-  if (initKeyListenerAttached) return;
-  initKeyListenerAttached = true;
-  initKeyInput.addEventListener('keydown', handleInitKeySubmit);
-}
+/**
+ * Handles the click on the initial "Request Access" button.
+ * This function redirects the user to the login page.
+ */
+requestAccessButton.addEventListener('click', () => {
+    // NOTE: The boot-up animation is temporarily disabled here.
+    // We redirect directly to the login page.
+    window.location.href = 'login.html';
+});
 
+/**
+ * Handles the submission of the Initialization Key.
+ * This runs when the user presses "Enter" in the input field.
+ */
 function handleInitKeySubmit(event) {
-  if (event.key === 'Enter') {
-    const enteredKey = initKeyInput.value.trim();
-    if (enteredKey === CORRECT_INIT_KEY) {
-      window.location.href = 'chat.html';
-    } else {
-      initKeyInput.classList.add('error');
-      initKeyInput.value = '';
-      setTimeout(() => initKeyInput.classList.remove('error'), 500);
+    if (event.key === 'Enter') {
+        const enteredKey = initKeyInput.value.trim();
+
+        if (enteredKey === CORRECT_INIT_KEY) {
+            // SUCCESS: The key is correct.
+            console.log("Initialization Key correct. Redirecting to chat...");
+            // Redirect the user to the main chat page.
+            window.location.href = 'chat.html';
+        } else {
+            // FAILURE: The key is incorrect.
+            console.error("Incorrect Initialization Key entered.");
+            
+            // Remove the old alert
+            // alert("ERROR: Invalid Initialization Key."); 
+
+            // Add the 'error' class to trigger the animation and red glow
+            initKeyInput.classList.add('error');
+            initKeyInput.value = ''; // Clear the input
+
+            // After the animation finishes, remove the class so it can play again
+            setTimeout(() => {
+                initKeyInput.classList.remove('error');
+            }, 500); // This duration must match the animation duration
+        }
     }
-  }
 }
-
-function attachRegisterListener() {
-  if (registerListenerAttached) return;
-  registerListenerAttached = true;
-  registerAgentBtn.addEventListener('click', registerAgent);
-  realNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') registerAgent(); });
-}
-
-async function registerAgent() {
-  const user = auth.currentUser;
-  if (!user) { showOnlyScreen(airlockScreen); return; }
-  const realName = (realNameInput.value || '').trim();
-  if (!realName) {
-    realNameInput.classList.add('error');
-    setTimeout(() => realNameInput.classList.remove('error'), 500);
-    return;
-  }
-  const agentId = `${CODENAMES[randomInt(0, CODENAMES.length - 1)]}_${randomInt(1, 99)}`;
-  const profileData = { realName, agentId, uid: user.uid };
-  registerAgentBtn.disabled = true;
-  try {
-    await set(ref(db, `users/${user.uid}`), profileData);
-    showOnlyScreen(gatewayScreen);
-    attachInitKeyListener();
-  } catch (error) {
-    console.error("Failed to save profile:", error);
-    registerAgentBtn.disabled = false;
-  }
-}
-
-// --- Application Start ---
-initialize();
